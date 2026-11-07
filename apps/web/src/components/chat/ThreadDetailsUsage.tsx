@@ -171,6 +171,14 @@ export function ThreadDetailsSession({
   const expiresAt = cacheExpiresAt(liveUsage);
   const minutesLeft = expiresAt === null ? null : Math.ceil((expiresAt - now) / 60_000);
   const warm = minutesLeft !== null && minutesLeft > 0;
+  // A cold cache makes the next message write the whole context to the cache again.
+  const rewrite = liveUsage ? formatTokens(liveUsage.usedTokens) : null;
+  const expiry =
+    minutesLeft === null
+      ? ""
+      : warm
+        ? ` · ${minutesLeft}m`
+        : ` · cold${rewrite ? ` ${rewrite}` : ""}`;
 
   return (
     <ThreadDetailsSection
@@ -191,7 +199,7 @@ export function ThreadDetailsSession({
           fill={hit}
           tone={null}
           muted
-          value={`${hit ?? 0}%${minutesLeft === null ? "" : warm ? ` · ${minutesLeft}m` : " · cold"}`}
+          value={`${hit ?? 0}%${expiry}`}
           ariaValue={`${hit ?? 0}% of input read from cache`}
           tooltip={
             <>
@@ -204,7 +212,7 @@ export function ThreadDetailsSession({
                 <span className="text-muted-foreground">
                   {warm
                     ? `Expires in about ${minutesLeft}m if the thread stays idle`
-                    : "Expired: the next message writes the cache again"}
+                    : `Expired: the next message writes ${rewrite ?? "the context"} to the cache again`}
                 </span>
               ) : null}
             </>

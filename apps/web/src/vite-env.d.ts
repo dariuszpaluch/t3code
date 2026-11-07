@@ -16,6 +16,9 @@ interface ImportMetaEnv {
   readonly VITE_RELAY_OTLP_TRACES_TOKEN: string;
   readonly T3CODE_DESKTOP_UPDATE_REPOSITORY: string;
   readonly T3CODE_FEATURE_SECRETS: string;
+  // dpaluch-nightly: set by build.sh from build.env.
+  readonly VITE_DPALUCH_WORK_FOLDER?: string;
+  readonly VITE_DPALUCH_JIRA_BROWSE_URL?: string;
   readonly APP_VERSION: string;
 }
 
