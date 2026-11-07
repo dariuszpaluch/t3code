@@ -1,0 +1,42 @@
+name: Sync dpaluch-nightly
+
+# Merges the newest upstream nightly and the PRs from dpaluch/prs.txt into the
+# dpaluch-nightly branch, then tags it as <nightly tag>-dpaluch.<n>.
+# The script is in that branch: dpaluch/sync.sh.
+# This file must be on the default branch: GitHub runs scheduled workflows
+# only from there.
+
+on:
+  schedule:
+    # 00:45 UTC is before the Mac build at 03:30 local time, also in summer.
+    - cron: "45 0 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-dpaluch-nightly
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: github.repository == 'dariuszpaluch/t3code'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: dpaluch-nightly
+          fetch-depth: 0
+          # The default GITHUB_TOKEN cannot push commits that change
+          # .github/workflows, and upstream merges often do.
+          token: ${{ secrets.SYNC_TOKEN }}
+
+      - name: Merge, push and tag
+        env:
+          # Reads the state of the upstream PRs.
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          dpaluch/sync.sh --push
