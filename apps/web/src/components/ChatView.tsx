@@ -3834,24 +3834,23 @@ export default function ChatView(props: ChatViewProps) {
                                       : undefined
                                   }
                                   availableEnvironments={logicalProjectEnvironments}
-                                  trailing={
-                                    <>
-                                      <WorkJiraTicketLink
-                                        branch={activeThreadBranch}
-                                        cwd={gitCwd}
-                                      />
-                                      {isServerThread ? null : (
-                                        <ComposerContextPermissions
-                                          environmentId={environmentId}
-                                          runtimeMode={runtimeMode}
-                                          supportedRuntimeModes={
-                                            activeProviderStatus?.supportedRuntimeModes
-                                          }
-                                          onRuntimeModeChange={handleRuntimeModeChangeStable}
-                                        />
-                                      )}
-                                    </>
+                                  beforeBranch={
+                                    <WorkJiraTicketLink branch={activeThreadBranch} cwd={gitCwd} />
                                   }
+                                  {...(isServerThread
+                                    ? {}
+                                    : {
+                                        trailing: (
+                                          <ComposerContextPermissions
+                                            environmentId={environmentId}
+                                            runtimeMode={runtimeMode}
+                                            supportedRuntimeModes={
+                                              activeProviderStatus?.supportedRuntimeModes
+                                            }
+                                            onRuntimeModeChange={handleRuntimeModeChangeStable}
+                                          />
+                                        ),
+                                      })}
                                 />
                               </div>
                             )}

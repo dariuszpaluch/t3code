@@ -99,6 +99,8 @@ interface BranchToolbarProps {
   onComposerFocusRequest?: () => void;
   /** Shown at the end of the composer strip, such as the new thread's permissions. */
   trailing?: ReactNode;
+  /** Optional items just left of the branch name, so the branch keeps its place. */
+  beforeBranch?: ReactNode;
   availableEnvironments?: readonly EnvironmentOption[];
   onEnvironmentChange?: (environmentId: EnvironmentId) => void;
 }
@@ -618,6 +620,7 @@ export const BranchToolbar = memo(function BranchToolbar({
   availableEnvironments,
   onEnvironmentChange,
   trailing,
+  beforeBranch,
 }: BranchToolbarProps) {
   const branchSelectorRef = useRef<BranchToolbarBranchSelectorHandle>(null);
   const threadRef = scopeThreadRef(environmentId, threadId);
@@ -809,6 +812,7 @@ export const BranchToolbar = memo(function BranchToolbar({
         </div>
       ) : null}
 
+      {beforeBranch}
       {showGitControls ? (
         <BranchToolbarBranchSelector
           forceNewWorktree={forceNewWorktree}
