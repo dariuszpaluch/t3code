@@ -1,0 +1,6 @@
+# Upstream pull requests (pingdotgg/t3code) to merge into dpaluch-nightly.
+# dpaluch/sync.sh merges the newest head of each PR on every run.
+# One PR number per line. Text after # is a comment.
+# A PR that is merged upstream and already in the branch is skipped.
+
+30730 # feat(web): filter sidebar threads by machine
