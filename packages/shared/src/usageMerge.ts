@@ -1,6 +1,7 @@
 import {
   USAGE_MERGE_COMPATIBLE_SINCE,
   type EnvironmentId,
+  type ProviderInstanceId,
   type UsageBucket,
   type UsageProviderKind,
   type UsageSource,
@@ -15,6 +16,18 @@ export interface EnvironmentUsage {
   readonly summary: UsageSummary;
 }
 
+/** One history source of a provider, usually one provider instance's home directory. */
+export interface UsageAccountTotals {
+  /** Same value as `usageSourceKey` of the source. */
+  readonly key: string;
+  readonly environmentId: EnvironmentId;
+  readonly resolvedHomePath: string;
+  readonly providerInstanceIds: readonly ProviderInstanceId[];
+  readonly costUsd: number;
+  readonly totalTokens: number;
+  readonly sessions: number;
+}
+
 export interface ProviderTotals {
   readonly provider: UsageProviderKind;
   readonly costUsd: number;
@@ -23,6 +36,8 @@ export interface ProviderTotals {
   readonly sessions: number;
   readonly costShare: number;
   readonly tokenShare: number;
+  /** Sorted by cost. Buckets from servers that do not report a source path are left out. */
+  readonly accounts: readonly UsageAccountTotals[];
 }
 
 export interface ModelTotals {
@@ -116,6 +131,42 @@ function fingerprintKey(fingerprint: UsageSourceFingerprint): string {
     fingerprint.resolvedHomePath,
     fingerprint.volumeId,
   ].join(" ");
+}
+
+/** Stable identity of a usage source across environments, reloads and refreshes. */
+export const usageSourceKey = (source: UsageSource): string => fingerprintKey(source.fingerprint);
+
+/** Maps each bucket of a summary to the key of the source it was read from. */
+function sourceKeyOfBucket(summary: UsageSummary): (bucket: UsageBucket) => string | undefined {
+  const byPath = new Map<string, string>();
+  const byProvider = new Map<UsageProviderKind, string | null>();
+  for (const source of summary.sources) {
+    const { provider, resolvedHomePath } = source.fingerprint;
+    const key = fingerprintKey(source.fingerprint);
+    byPath.set(`${provider}\u0000${resolvedHomePath}`, key);
+    byProvider.set(provider, byProvider.has(provider) ? null : key);
+  }
+  return (bucket) =>
+    bucket.sourcePath === undefined
+      ? (byProvider.get(bucket.provider) ?? undefined)
+      : byPath.get(`${bucket.provider}\u0000${bucket.sourcePath}`);
+}
+
+/** Drops the hidden sources and the buckets read from them. */
+export function withoutUsageSources(
+  summary: UsageSummary,
+  hiddenSourceKeys: ReadonlySet<string>,
+): UsageSummary {
+  if (hiddenSourceKeys.size === 0) return summary;
+  const keyOf = sourceKeyOfBucket(summary);
+  return {
+    ...summary,
+    buckets: summary.buckets.filter((bucket) => {
+      const key = keyOf(bucket);
+      return key === undefined || !hiddenSourceKeys.has(key);
+    }),
+    sources: summary.sources.filter((source) => !hiddenSourceKeys.has(usageSourceKey(source))),
+  };
 }
 
 function bucketsForSource(summary: UsageSummary, source: UsageSource): readonly UsageBucket[] {
@@ -379,6 +430,8 @@ export function mergeUsage(
       byProvider: Map<UsageProviderKind, { costUsd: number; totalTokens: number }>;
     }
   >();
+  const accountSources = new Map<string, { environmentId: EnvironmentId; source: UsageSource }>();
+  const accountAccumulator = new Map<string, { costUsd: number; totalTokens: number }>();
   const contributingEnvironments: EnvironmentId[] = [];
 
   for (const environment of current) {
@@ -389,6 +442,13 @@ export function mergeUsage(
       sessionsByFingerprint,
     );
     if (buckets.length > 0) contributingEnvironments.push(environment.environmentId);
+    for (const source of environment.summary.sources) {
+      const key = fingerprintKey(source.fingerprint);
+      if (ownerByFingerprint.get(key) === environment.environmentId) {
+        accountSources.set(key, { environmentId: environment.environmentId, source });
+      }
+    }
+    const accountKeyOf = sourceKeyOfBucket(environment.summary);
 
     for (const [providerKind, providerSessions] of sessionsByProvider) {
       sessions += providerSessions;
@@ -436,6 +496,14 @@ export function mergeUsage(
       provider.totalTokens += tokens;
       provider.records += bucket.records;
       providerAccumulator.set(bucket.provider, provider);
+
+      const accountKey = accountKeyOf(bucket);
+      if (accountKey !== undefined) {
+        const account = accountAccumulator.get(accountKey) ?? { costUsd: 0, totalTokens: 0 };
+        account.costUsd += bucket.costUsd;
+        account.totalTokens += tokens;
+        accountAccumulator.set(accountKey, account);
+      }
 
       const modelKey = `${bucket.provider} ${bucket.model}`;
       const model = modelAccumulator.get(modelKey) ?? {
@@ -506,6 +574,25 @@ export function mergeUsage(
 
   const totalTokens = uncachedInputTokens + cachedInputTokens + cacheCreationTokens + outputTokens;
 
+  const accounts = [...accountSources]
+    .map(
+      ([key, { environmentId, source }]): UsageAccountTotals & { provider: UsageProviderKind } => {
+        const totals = accountAccumulator.get(key);
+        return {
+          key,
+          provider: source.fingerprint.provider,
+          environmentId,
+          resolvedHomePath: source.fingerprint.resolvedHomePath,
+          providerInstanceIds: source.providerInstanceIds ?? [],
+          costUsd: totals?.costUsd ?? 0,
+          totalTokens: totals?.totalTokens ?? 0,
+          sessions: sessionsByFingerprint.get(key) ?? source.distinctSessions,
+        };
+      },
+    )
+    .filter((account) => account.totalTokens > 0 || account.costUsd > 0 || account.sessions > 0)
+    .sort((a, b) => b.costUsd - a.costUsd || b.totalTokens - a.totalTokens);
+
   const providers: ProviderTotals[] = [...providerAccumulator.entries()]
     .map(([provider, totals]) => ({
       provider,
@@ -515,6 +602,9 @@ export function mergeUsage(
       sessions: totals.sessions,
       costShare: costUsd === 0 ? 0 : totals.costUsd / costUsd,
       tokenShare: totalTokens === 0 ? 0 : totals.totalTokens / totalTokens,
+      accounts: accounts.flatMap(({ provider: accountProvider, ...account }) =>
+        accountProvider === provider ? [account] : [],
+      ),
     }))
     .sort((a, b) => b.costUsd - a.costUsd);
 

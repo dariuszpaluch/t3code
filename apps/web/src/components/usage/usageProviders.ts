@@ -80,3 +80,33 @@ export function rankProvidersByMetric(
     totals.find((entry) => entry.provider === provider)?.[field] ?? 0;
   return providers.toSorted((left, right) => value(right) - value(left));
 }
+
+export interface UsageVisibility {
+  readonly hiddenProviders: readonly UsageProviderKind[];
+  readonly hiddenSources: readonly string[];
+}
+
+/**
+ * Shows or hides one account of a provider. A provider with every account
+ * hidden is stored as a hidden provider, so it stays hidden when it gets a new
+ * account.
+ */
+export function setUsageAccountVisible(
+  visibility: UsageVisibility,
+  provider: UsageProviderKind,
+  accountKeys: readonly string[],
+  key: string,
+  visible: boolean,
+): UsageVisibility {
+  const otherSources = visibility.hiddenSources.filter((entry) => !accountKeys.includes(entry));
+  const hiddenAccounts = visibility.hiddenProviders.includes(provider)
+    ? accountKeys
+    : visibility.hiddenSources.filter((entry) => accountKeys.includes(entry));
+  const nextHidden = visible
+    ? hiddenAccounts.filter((entry) => entry !== key)
+    : [...new Set([...hiddenAccounts, key])];
+  const otherProviders = visibility.hiddenProviders.filter((entry) => entry !== provider);
+  return accountKeys.every((entry) => nextHidden.includes(entry))
+    ? { hiddenProviders: [...otherProviders, provider], hiddenSources: otherSources }
+    : { hiddenProviders: otherProviders, hiddenSources: [...otherSources, ...nextHidden] };
+}

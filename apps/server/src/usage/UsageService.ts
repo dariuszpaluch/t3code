@@ -99,6 +99,7 @@ interface TranscriptSource {
   readonly dir: string;
   readonly volumeId: string;
   readonly fileName?: string;
+  readonly providerInstanceIds: ProviderInstanceId[];
 }
 
 const RatesCacheFile = Schema.Struct({
@@ -341,14 +342,17 @@ export const make = Effect.gen(function* () {
     retentionCutoffMs: number,
   ) {
     const dirs: Array<TranscriptSource> = [];
-    const seen = new Set<string>();
+    const seen = new Map<string, TranscriptSource>();
     for (const { driver, reader } of transcriptReaders) {
       const { provider, format } = reader;
       const directories = yield* Effect.forEach(
         yield* usageInstances(driver, settings),
-        (instance) => reader.directories(instance),
+        (instance) =>
+          Effect.map(reader.directories(instance), (entries) =>
+            entries.map((entry) => ({ ...entry, instanceId: instance.instanceId })),
+          ),
       );
-      for (const { dir: directory, fileName } of directories.flat()) {
+      for (const { dir: directory, fileName, instanceId } of directories.flat()) {
         const sourceKey = provider + "\0" + directory;
         const previous = sourceCache.get(sourceKey);
         const dir = yield* fileSystem
@@ -373,15 +377,23 @@ export const make = Effect.gen(function* () {
           cacheDirty = true;
         }
         const key = `${provider}\0${dir}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        dirs.push({
+        const existing = seen.get(key);
+        if (existing !== undefined) {
+          if (!existing.providerInstanceIds.includes(instanceId)) {
+            existing.providerInstanceIds.push(instanceId);
+          }
+          continue;
+        }
+        const source: TranscriptSource = {
           provider,
           format,
           dir,
           volumeId,
           ...(fileName === undefined ? {} : { fileName }),
-        });
+          providerInstanceIds: [instanceId],
+        };
+        seen.set(key, source);
+        dirs.push(source);
       }
     }
     return dirs;
@@ -564,17 +576,20 @@ export const make = Effect.gen(function* () {
         }[]
       | null;
     readonly refreshing?: true;
+    readonly providerInstanceIds?: readonly ProviderInstanceId[];
   }
 
   const scanTranscriptDir = Effect.fn("UsageService.scanTranscriptDir")(function* (
     source: TranscriptSource,
     windowStartMs: number,
   ) {
-    const { provider, format, dir, volumeId, fileName } = source;
+    const { provider, format, dir, volumeId, fileName, providerInstanceIds } = source;
     const exists = yield* fileSystem
       .exists(dir)
       .pipe(Effect.catchCause(() => Effect.succeed(false)));
-    if (!exists) return { provider, dir, volumeId, files: null } satisfies ScannedDir;
+    if (!exists) {
+      return { provider, dir, volumeId, providerInstanceIds, files: null } satisfies ScannedDir;
+    }
     const { files, failedPaths } = yield* Effect.promise(() =>
       listTranscriptFiles(dir, windowStartMs, fileName === undefined ? undefined : { fileName }),
     );
@@ -615,6 +630,7 @@ export const make = Effect.gen(function* () {
       provider,
       dir,
       volumeId,
+      providerInstanceIds,
       files: parsedFiles,
       ...(unread > 0
         ? {
@@ -811,7 +827,17 @@ export const make = Effect.gen(function* () {
 
     for (const [
       index,
-      { provider, dir, volumeId, files, status, message, refreshing, hostId: sourceHostId },
+      {
+        provider,
+        dir,
+        volumeId,
+        files,
+        status,
+        message,
+        refreshing,
+        hostId: sourceHostId,
+        providerInstanceIds,
+      },
     ] of scannedDirs.entries()) {
       let scannedFiles = 0;
       let skippedFiles = 0;
@@ -876,6 +902,9 @@ export const make = Effect.gen(function* () {
                 .join(" ")
             : sourceMessage,
         ...(refreshing ? { refreshing } : {}),
+        ...(providerInstanceIds === undefined
+          ? {}
+          : { providerInstanceIds: [...providerInstanceIds] }),
       });
     }
 

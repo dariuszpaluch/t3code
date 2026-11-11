@@ -24,9 +24,17 @@ afterEach(() => {
 });
 
 describe("Usage page preferences", () => {
-  it("round-trips hidden providers and reads older saves without them", () => {
-    saveUsagePagePreferences({ metric: "cost", windowDays: 7, hiddenProviders: ["codex"] });
-    expect(readUsagePagePreferences().hiddenProviders).toEqual(["codex"]);
+  it("round-trips hidden providers and accounts and reads older saves without them", () => {
+    saveUsagePagePreferences({
+      metric: "cost",
+      windowDays: 7,
+      hiddenProviders: ["codex"],
+      hiddenSources: ["mac claude /a/.claude 1:1"],
+    });
+    expect(readUsagePagePreferences()).toMatchObject({
+      hiddenProviders: ["codex"],
+      hiddenSources: ["mac claude /a/.claude 1:1"],
+    });
 
     values.set(key, '{"metric":"tokens","windowDays":30}');
     expect(readUsagePagePreferences()).toEqual({ metric: "tokens", windowDays: 30 });

@@ -54,6 +54,10 @@ environments are selected by default. The dropdown shows which environments are 
 results appear as each one responds, and figures still updating are dimmed. Cursor shows its last
 saved totals first, then updates them when Cursor's API responds.
 
+When a provider has more than one account, costs and tokens show each account under its provider.
+The provider dropdown then lists the accounts by name, so you can hide one account and keep the
+others. Accounts that share a history directory show as one entry.
+
 If recent work is missing or a new model shows no cost, refresh to rescan session history and
 update model pricing.
 

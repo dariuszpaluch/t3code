@@ -1,6 +1,7 @@
 import * as Schema from "effect/Schema";
 
 import { ForwardCompatibleArray, NonNegativeInt, TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { ProviderInstanceId } from "./providerInstance.ts";
 
 /** Bump for incompatible UsageSummary changes; skipped unknown array variants need no bump. */
 export const USAGE_CONTRACT_VERSION = 6 as const;
@@ -90,6 +91,11 @@ export const UsageSource = Schema.Struct({
   malformedRecords: NonNegativeInt,
   /** Total this count; bucket counts double-count sessions spanning days or models. */
   distinctSessions: NonNegativeInt,
+  /**
+   * Provider instances whose history this source holds. Several instances
+   * share one source when they point at the same home directory.
+   */
+  providerInstanceIds: Schema.optionalKey(Schema.Array(ProviderInstanceId)),
   message: Schema.NullOr(TrimmedNonEmptyString),
   /** Cached response during refresh; repeat with awaitRefresh for fresh data. */
   refreshing: Schema.optionalKey(Schema.Literal(true)),

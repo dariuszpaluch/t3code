@@ -16,6 +16,11 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Cause from "effect/Cause";
 import { refreshUsageLimits } from "@t3tools/client-runtime/state/usage";
 import {
+  listUsageAccounts,
+  usageAccountLabels,
+  type UsageAccount,
+} from "@t3tools/client-runtime/state/usage-accounts";
+import {
   updatingProvidersLabel,
   usageEnvironmentProgress,
   usageLoadingState,
@@ -24,6 +29,7 @@ import {
 import {
   isCompatibleUsageContractVersion,
   isModelCostUnknown,
+  usageSourceKey,
   type DailyTotals,
   type HourlyTotals,
   type MergedUsage,
@@ -100,6 +106,8 @@ import {
   PROVIDER_PRESENTATION,
   providersWithUsage,
   rankProvidersByMetric,
+  setUsageAccountVisible,
+  type UsageVisibility,
 } from "./usageProviders";
 import {
   readUsagePagePreferences,
@@ -203,6 +211,7 @@ export function UsagePage() {
   const [selectedEnvironmentIds, setSelectedEnvironmentIds] =
     useState<ReadonlySet<EnvironmentId> | null>(null);
   const hiddenProviders = new Set(preferences.hiddenProviders);
+  const hiddenSources = new Set(preferences.hiddenSources);
   const { days: windowDays, window } = windowSelection;
   const isPast24Hours = windowDays === 1;
   const {
@@ -212,7 +221,7 @@ export function UsagePage() {
     shown,
     isPartial,
     refresh,
-  } = useUsage(window, selectedEnvironmentIds, hiddenProviders);
+  } = useUsage(window, selectedEnvironmentIds, hiddenProviders, hiddenSources);
   const merged = shown?.merged ?? answeredUsage;
   const shownWindow = shown?.window ?? window;
   const shownHourly = shownWindow.resolution === "hour";
@@ -225,6 +234,21 @@ export function UsagePage() {
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
     reportFailure: false,
   });
+  const accountsByProvider = listUsageAccounts(selectedEnvironments);
+  const instancesByEnvironment = new Map(
+    Array.from(presentationsWithProviders, ([environmentId, presentation]) => [
+      environmentId,
+      presentation.serverConfig?.providers ?? [],
+    ]),
+  );
+  const environmentLabels = new Map(
+    selectedEnvironments.map((environment) => [environment.environmentId, environment.label]),
+  );
+  const accountLabels = new Map(
+    [...accountsByProvider.values()].flatMap((accounts) => [
+      ...usageAccountLabels(accounts, instancesByEnvironment, environmentLabels),
+    ]),
+  );
 
   const canReadDiagnostics = selectedEnvironments.some(
     (environment) => environment.canReadDiagnostics,
@@ -381,7 +405,10 @@ export function UsagePage() {
         <WorkspaceBreadcrumbItem current className="min-w-10">
           <UsageProviderFilter
             hiddenProviders={hiddenProviders}
-            onChange={(next) => updatePreferences({ hiddenProviders: next })}
+            hiddenSources={hiddenSources}
+            accountsByProvider={accountsByProvider}
+            accountLabels={accountLabels}
+            onChange={(next) => updatePreferences(next)}
           />
         </WorkspaceBreadcrumbItem>
       </WorkspaceBreadcrumb>
@@ -544,6 +571,8 @@ export function UsagePage() {
                 metric={metric === "tokens" ? "tokens" : "cost"}
                 selectedEnvironments={selectedEnvironments}
                 hiddenProviders={hiddenProviders}
+                hiddenSources={hiddenSources}
+                accountLabels={accountLabels}
                 refreshingUsage={refreshingUsage}
                 showChatGptSharing={showChatGptSharing}
                 onSelectModel={selectUsageModel}
@@ -592,6 +621,8 @@ function UsageOverview({
   metric,
   selectedEnvironments,
   hiddenProviders,
+  hiddenSources,
+  accountLabels,
   refreshingUsage,
   showChatGptSharing,
   onSelectModel,
@@ -605,6 +636,8 @@ function UsageOverview({
   readonly metric: "tokens" | "cost";
   readonly selectedEnvironments: readonly EnvironmentUsageStatus[];
   readonly hiddenProviders: ReadonlySet<UsageProviderKind>;
+  readonly hiddenSources: ReadonlySet<string>;
+  readonly accountLabels: ReadonlyMap<string, string>;
   readonly refreshingUsage: boolean;
   readonly showChatGptSharing: boolean;
   readonly onSelectModel: (key: string) => void;
@@ -631,7 +664,9 @@ function UsageOverview({
     selectedEnvironments.flatMap(
       (environment) =>
         environment.summary?.sources.filter(
-          (source) => !hiddenProviders.has(source.fingerprint.provider),
+          (source) =>
+            !hiddenProviders.has(source.fingerprint.provider) &&
+            !hiddenSources.has(usageSourceKey(source)),
         ) ?? [],
     ),
   );
@@ -756,6 +791,36 @@ function UsageOverview({
                     ? `${formatPercent(share)} of cost · ${formatTokens(totals?.totalTokens ?? 0)} tokens`
                     : `${formatPercent(share)} of tokens · ${formatUsd(totals?.costUsd ?? 0)}`}
                 </span>
+                {totals !== undefined && totals.accounts.length > 1 ? (
+                  <ul
+                    className={cn(
+                      "mt-1 flex flex-col gap-1 border-s ps-3",
+                      figureClass(providerLoading),
+                    )}
+                  >
+                    {totals.accounts.map((account) => (
+                      <li
+                        key={account.key}
+                        className="flex items-baseline justify-between gap-4 text-xs"
+                      >
+                        <span className="flex min-w-0 items-baseline gap-1.5">
+                          <span className="truncate text-foreground">
+                            {accountLabels.get(account.key) ?? account.resolvedHomePath}
+                          </span>
+                          <span className="shrink-0 whitespace-nowrap text-2xs text-muted-foreground tabular-nums">
+                            {formatCount(account.sessions)}{" "}
+                            {account.sessions === 1 ? "session" : "sessions"}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-foreground tabular-nums">
+                          {metric === "cost"
+                            ? formatUsd(account.costUsd)
+                            : formatTokens(account.totalTokens)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             );
           })}
@@ -1247,19 +1312,59 @@ function UsageEnvironmentFilter({
 
 function UsageProviderFilter({
   hiddenProviders,
+  hiddenSources,
+  accountsByProvider,
+  accountLabels,
   onChange,
 }: {
   readonly hiddenProviders: ReadonlySet<UsageProviderKind>;
-  readonly onChange: (hiddenProviders: readonly UsageProviderKind[]) => void;
+  readonly hiddenSources: ReadonlySet<string>;
+  readonly accountsByProvider: ReadonlyMap<UsageProviderKind, readonly UsageAccount[]>;
+  readonly accountLabels: ReadonlyMap<string, string>;
+  readonly onChange: (visibility: UsageVisibility) => void;
 }) {
-  const visible = PROVIDER_ORDER.filter((provider) => !hiddenProviders.has(provider));
+  const visibility: UsageVisibility = {
+    hiddenProviders: [...hiddenProviders],
+    hiddenSources: [...hiddenSources],
+  };
+  // A provider with several accounts is listed as its accounts instead.
+  const entries = PROVIDER_ORDER.flatMap((provider) => {
+    const accounts = accountsByProvider.get(provider) ?? [];
+    if (accounts.length < 2) {
+      return [
+        {
+          key: provider,
+          provider,
+          label: PROVIDER_PRESENTATION[provider].label,
+          visible: !hiddenProviders.has(provider),
+          setVisible: (visible: boolean) =>
+            onChange({
+              ...visibility,
+              hiddenProviders: PROVIDER_ORDER.filter((entry) =>
+                entry === provider ? !visible : hiddenProviders.has(entry),
+              ),
+            }),
+        },
+      ];
+    }
+    const accountKeys = accounts.map((account) => account.key);
+    return accounts.map((account) => ({
+      key: account.key,
+      provider,
+      label: accountLabels.get(account.key) ?? account.resolvedHomePath,
+      visible: !hiddenProviders.has(provider) && !hiddenSources.has(account.key),
+      setVisible: (visible: boolean) =>
+        onChange(setUsageAccountVisible(visibility, provider, accountKeys, account.key, visible)),
+    }));
+  });
+  const visible = entries.filter((entry) => entry.visible);
   const label =
-    visible.length === PROVIDER_ORDER.length
+    visible.length === entries.length
       ? "All providers"
       : visible.length === 0
         ? "No providers"
         : visible.length === 1
-          ? PROVIDER_PRESENTATION[visible[0]!].label
+          ? visible[0]!.label
           : `${visible.length} providers`;
 
   return (
@@ -1267,35 +1372,31 @@ function UsageProviderFilter({
       <MenuTrigger render={<InlineButton />} className="group/usage-provider min-w-0 max-w-full">
         <span className="min-w-0 truncate">{label}</span>
         <ChevronDownIcon
-          className="size-3.5 shrink-0 text-muted-foreground opacity-60 transition-opacity group-hover/usage-provider:opacity-100 group-focus-visible/usage-provider:opacity-100 group-data-popup-open/usage-provider:opacity-100"
+          className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/usage-provider:opacity-100 group-focus-visible/usage-provider:opacity-100 group-data-popup-open/usage-provider:opacity-100"
           aria-hidden
         />
       </MenuTrigger>
       <MenuPopup align="start">
         <MenuCheckboxItem
-          checked={hiddenProviders.size === 0}
+          checked={visible.length === entries.length}
           closeOnClick={false}
-          onCheckedChange={(checked) => onChange(checked ? [] : PROVIDER_ORDER)}
+          onCheckedChange={(checked) =>
+            onChange({ hiddenProviders: checked ? [] : PROVIDER_ORDER, hiddenSources: [] })
+          }
         >
           All providers
         </MenuCheckboxItem>
         <MenuSeparator />
-        {PROVIDER_ORDER.map((provider) => (
+        {entries.map((entry) => (
           <MenuCheckboxItem
-            key={provider}
-            checked={!hiddenProviders.has(provider)}
+            key={entry.key}
+            checked={entry.visible}
             closeOnClick={false}
-            onCheckedChange={(checked) =>
-              onChange(
-                PROVIDER_ORDER.filter((entry) =>
-                  entry === provider ? !checked : hiddenProviders.has(entry),
-                ),
-              )
-            }
+            onCheckedChange={entry.setVisible}
           >
             <span className="flex min-w-0 items-center gap-2">
-              <ProviderMark provider={provider} className="size-3.5" />
-              <span className="truncate">{PROVIDER_PRESENTATION[provider].label}</span>
+              <ProviderMark provider={entry.provider} className="size-3.5" />
+              <span className="truncate">{entry.label}</span>
             </span>
           </MenuCheckboxItem>
         ))}

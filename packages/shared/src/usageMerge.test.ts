@@ -2,6 +2,7 @@ import {
   USAGE_CONTRACT_VERSION,
   USAGE_MERGE_COMPATIBLE_SINCE,
   type EnvironmentId,
+  ProviderInstanceId,
   type UsageBucket,
   type UsageDay,
   type UsageProviderKind,
@@ -10,7 +11,13 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 import * as Schema from "effect/Schema";
 
-import { isModelCostUnknown, mergeUsage, type EnvironmentUsage } from "./usageMerge.ts";
+import {
+  isModelCostUnknown,
+  mergeUsage,
+  usageSourceKey,
+  withoutUsageSources,
+  type EnvironmentUsage,
+} from "./usageMerge.ts";
 
 const decodeSummary = Schema.decodeUnknownSync(UsageSummary);
 
@@ -44,6 +51,7 @@ function summary(
     homePath: string;
     volumeId?: string;
     distinctSessions?: number;
+    providerInstanceIds?: readonly string[];
   }[],
   contractVersion: number = USAGE_CONTRACT_VERSION,
 ): UsageSummary {
@@ -66,6 +74,13 @@ function summary(
       skippedFiles: 0,
       malformedRecords: 0,
       distinctSessions: source.distinctSessions ?? 1,
+      ...(source.providerInstanceIds === undefined
+        ? {}
+        : {
+            providerInstanceIds: source.providerInstanceIds.map((id) =>
+              ProviderInstanceId.make(id),
+            ),
+          }),
       message: null,
     })),
     pricing: { status: "fresh", source: "litellm", fetchedAt: null, knownModels: 10 },
@@ -567,5 +582,82 @@ describe("mergeUsage", () => {
 
     expect(merged.sessions).toBe(1);
     expect(merged.providers[0]?.sessions).toBe(1);
+  });
+
+  describe("accounts", () => {
+    const twoClaudeHomes = summary(
+      [
+        bucket({ sourcePath: "/a/.claude", costUsd: 10 }),
+        bucket({ sourcePath: "/a/.claude-personal", costUsd: 4 }),
+        bucket({ provider: "codex", model: "gpt-6-sol", sourcePath: "/a/.codex", costUsd: 1 }),
+      ],
+      [
+        {
+          provider: "claude",
+          hostId: "mac",
+          homePath: "/a/.claude",
+          distinctSessions: 3,
+          providerInstanceIds: ["claudeAgent"],
+        },
+        {
+          provider: "claude",
+          hostId: "mac",
+          homePath: "/a/.claude-personal",
+          distinctSessions: 2,
+          providerInstanceIds: ["claude-personal"],
+        },
+        { provider: "codex", hostId: "mac", homePath: "/a/.codex" },
+      ],
+    );
+
+    it("splits a provider's totals by the source each bucket was read from", () => {
+      const merged = mergeUsage([environment("env-a", twoClaudeHomes)], USAGE_CONTRACT_VERSION);
+      const claude = merged.providers.find((entry) => entry.provider === "claude");
+
+      expect(
+        claude?.accounts.map(({ resolvedHomePath, providerInstanceIds, costUsd, sessions }) => ({
+          resolvedHomePath,
+          providerInstanceIds,
+          costUsd,
+          sessions,
+        })),
+      ).toEqual([
+        {
+          resolvedHomePath: "/a/.claude",
+          providerInstanceIds: ["claudeAgent"],
+          costUsd: 10,
+          sessions: 3,
+        },
+        {
+          resolvedHomePath: "/a/.claude-personal",
+          providerInstanceIds: ["claude-personal"],
+          costUsd: 4,
+          sessions: 2,
+        },
+      ]);
+    });
+
+    it("leaves a hidden source out of every total", () => {
+      const personal = twoClaudeHomes.sources.find(
+        (source) => source.fingerprint.resolvedHomePath === "/a/.claude-personal",
+      )!;
+      const merged = mergeUsage(
+        [
+          environment(
+            "env-a",
+            withoutUsageSources(twoClaudeHomes, new Set([usageSourceKey(personal)])),
+          ),
+        ],
+        USAGE_CONTRACT_VERSION,
+      );
+
+      expect(merged.costUsd).toBe(11);
+      expect(merged.sessions).toBe(4);
+      expect(
+        merged.providers
+          .find((entry) => entry.provider === "claude")
+          ?.accounts.map((account) => account.resolvedHomePath),
+      ).toEqual(["/a/.claude"]);
+    });
   });
 });

@@ -287,6 +287,10 @@
       "types": "./src/state/usage.ts",
       "default": "./src/state/usage.ts"
     },
+    "./state/usage-accounts": {
+      "types": "./src/state/usageAccounts.ts",
+      "default": "./src/state/usageAccounts.ts"
+    },
     "./state/usage-progress": {
       "types": "./src/state/usageProgress.ts",
       "default": "./src/state/usageProgress.ts"

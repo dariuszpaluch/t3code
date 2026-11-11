@@ -1440,6 +1440,58 @@ describe("UsageService", () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live("names the provider instances that own each transcript home", () =>
+    Effect.gen(function* () {
+      const { home, settings, transcript } = yield* setup;
+      const personalDir = NodePath.join(home, "claude-personal", "projects", "proj");
+      yield* Effect.promise(async () => {
+        await NodeFSP.writeFile(transcript, claudeLine(1, 5));
+        await NodeFSP.mkdir(personalDir, { recursive: true });
+        await NodeFSP.writeFile(
+          NodePath.join(personalDir, "session.jsonl"),
+          claudeLine(2, 7, "claude-fable-5", "session-2"),
+        );
+      });
+      const summary = yield* Effect.gen(function* () {
+        const service = yield* UsageService.make;
+        return yield* service.readSummary(WINDOW);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          layerService({
+            prefix: "usage-instance-owners",
+            home,
+            settings: {
+              ...settings,
+              providerInstances: {
+                ...settings.providerInstances,
+                [ProviderInstanceId.make("claude-personal")]: {
+                  driver: ProviderDriverKind.make("claudeAgent"),
+                  config: { homePath: NodePath.join(home, "claude-personal") },
+                },
+                [ProviderInstanceId.make("claude-second-login")]: {
+                  driver: ProviderDriverKind.make("claudeAgent"),
+                  config: { homePath: NodePath.join(home, "claude") },
+                },
+              },
+            },
+          }),
+        ),
+      );
+      const claudeOwners = summary.sources
+        .filter((source) => source.fingerprint.provider === "claude")
+        .map((source) => ({
+          home: NodePath.basename(NodePath.dirname(source.fingerprint.resolvedHomePath)),
+          instances: source.providerInstanceIds?.map((id) => String(id)),
+          sessions: source.distinctSessions,
+        }));
+      assert.deepStrictEqual(claudeOwners, [
+        { home: "claude", instances: ["claudeAgent", "claude-second-login"], sessions: 1 },
+        { home: "claude-personal", instances: ["claude-personal"], sessions: 1 },
+      ]);
+    }).pipe(Effect.scoped),
+  );
+
   it.live("restores the Cursor account cache after a restart", () =>
     Effect.gen(function* () {
       const { settings, home } = yield* setup;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { rankProvidersByMetric } from "./usageProviders";
+import { rankProvidersByMetric, setUsageAccountVisible } from "./usageProviders";
 
 describe("rankProvidersByMetric", () => {
   it("ranks by the selected metric, highest first", () => {
@@ -24,5 +24,33 @@ describe("rankProvidersByMetric", () => {
 
     expect(rankProvidersByMetric(providers, totals, "tokens")).toEqual(["grok", "claude", "codex"]);
     expect(providers).toEqual(["claude", "codex", "grok"]);
+  });
+});
+
+describe("setUsageAccountVisible", () => {
+  const keys = ["work", "personal"];
+  const none = { hiddenProviders: [], hiddenSources: [] };
+
+  it("hides one account and keeps the provider visible", () => {
+    expect(setUsageAccountVisible(none, "claude", keys, "personal", false)).toEqual({
+      hiddenProviders: [],
+      hiddenSources: ["personal"],
+    });
+  });
+
+  it("hides the provider when its last account is hidden", () => {
+    const onlyWork = { hiddenProviders: [], hiddenSources: ["personal", "codex-home"] };
+    expect(setUsageAccountVisible(onlyWork, "claude", keys, "work", false)).toEqual({
+      hiddenProviders: ["claude"],
+      hiddenSources: ["codex-home"],
+    });
+  });
+
+  it("shows only the chosen account of a hidden provider", () => {
+    const hidden = { hiddenProviders: ["claude" as const], hiddenSources: [] };
+    expect(setUsageAccountVisible(hidden, "claude", keys, "work", true)).toEqual({
+      hiddenProviders: [],
+      hiddenSources: ["personal"],
+    });
   });
 });
