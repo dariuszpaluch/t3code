@@ -136,15 +136,14 @@ function fingerprintKey(fingerprint: UsageSourceFingerprint): string {
 /** Stable identity of a usage source across environments, reloads and refreshes. */
 export const usageSourceKey = (source: UsageSource): string => fingerprintKey(source.fingerprint);
 
-/** Maps each bucket of a summary to the key of the source it was read from. */
-function sourceKeyOfBucket(summary: UsageSummary): (bucket: UsageBucket) => string | undefined {
-  const byPath = new Map<string, string>();
-  const byProvider = new Map<UsageProviderKind, string | null>();
+/** Maps each bucket of a summary to the source it was read from. */
+function sourceOfBucket(summary: UsageSummary): (bucket: UsageBucket) => UsageSource | undefined {
+  const byPath = new Map<string, UsageSource>();
+  const byProvider = new Map<UsageProviderKind, UsageSource | null>();
   for (const source of summary.sources) {
     const { provider, resolvedHomePath } = source.fingerprint;
-    const key = fingerprintKey(source.fingerprint);
-    byPath.set(`${provider}\u0000${resolvedHomePath}`, key);
-    byProvider.set(provider, byProvider.has(provider) ? null : key);
+    byPath.set(`${provider}\u0000${resolvedHomePath}`, source);
+    byProvider.set(provider, byProvider.has(provider) ? null : source);
   }
   return (bucket) =>
     bucket.sourcePath === undefined
@@ -158,15 +157,40 @@ export function withoutUsageSources(
   hiddenSourceKeys: ReadonlySet<string>,
 ): UsageSummary {
   if (hiddenSourceKeys.size === 0) return summary;
-  const keyOf = sourceKeyOfBucket(summary);
+  const sourceOf = sourceOfBucket(summary);
   return {
     ...summary,
     buckets: summary.buckets.filter((bucket) => {
-      const key = keyOf(bucket);
-      return key === undefined || !hiddenSourceKeys.has(key);
+      const source = sourceOf(bucket);
+      return source === undefined || !hiddenSourceKeys.has(usageSourceKey(source));
     }),
     sources: summary.sources.filter((source) => !hiddenSourceKeys.has(usageSourceKey(source))),
   };
+}
+
+// Sources are one directory when either their legacy key or their physicalSourceId matches.
+// physicalSourceId joins a directory read natively by Windows and through a WSL mount (path
+// and dev:ino both differ); the legacy key still joins installs whose host scopes differ.
+function sourceIdentity(
+  environments: readonly EnvironmentUsage[],
+): (fingerprint: UsageSourceFingerprint) => string {
+  const parent = new Map<string, string>();
+  const find = (key: string): string => {
+    const next = parent.get(key);
+    if (next === undefined || next === key) return key;
+    const root = find(next);
+    parent.set(key, root);
+    return root;
+  };
+  for (const environment of environments) {
+    for (const { fingerprint } of environment.summary.sources) {
+      if (fingerprint.physicalSourceId === undefined) continue;
+      const legacy = find(fingerprintKey(fingerprint));
+      const physical = find(`\u0000${fingerprint.provider}\u0000${fingerprint.physicalSourceId}`);
+      if (legacy !== physical) parent.set(legacy, physical);
+    }
+  }
+  return (fingerprint) => find(fingerprintKey(fingerprint));
 }
 
 function bucketsForSource(summary: UsageSummary, source: UsageSource): readonly UsageBucket[] {
@@ -185,13 +209,15 @@ function bucketKey(bucket: UsageBucket): string {
   return JSON.stringify([bucket.day, bucket.hourStart ?? null, bucket.provider, bucket.model]);
 }
 
-function claimSources(environments: readonly EnvironmentUsage[]): {
-  readonly ownerByFingerprint: ReadonlyMap<string, EnvironmentId>;
+function claimSources(
+  environments: readonly EnvironmentUsage[],
+  sourceKey: (fingerprint: UsageSourceFingerprint) => string,
+): {
+  readonly ownerScanByFingerprint: ReadonlyMap<string, { readonly source: UsageSource }>;
   readonly supplementalBucketsByEnvironment: ReadonlyMap<EnvironmentId, ReadonlySet<UsageBucket>>;
   readonly sessionsByFingerprint: ReadonlyMap<string, number>;
   readonly duplicates: readonly string[];
 } {
-  const ownerByFingerprint = new Map<string, EnvironmentId>();
   const ownerScanByFingerprint = new Map<
     string,
     { environment: EnvironmentUsage; source: UsageSource }
@@ -211,12 +237,11 @@ function claimSources(environments: readonly EnvironmentUsage[]): {
     for (const environment of ordered) {
       for (const source of environment.summary.sources) {
         if (source.status !== status) continue;
-        const key = fingerprintKey(source.fingerprint);
-        if (ownerByFingerprint.has(key)) {
+        const key = sourceKey(source.fingerprint);
+        if (ownerScanByFingerprint.has(key)) {
           duplicates.push(`${environment.label}: ${source.fingerprint.resolvedHomePath}`);
           continue;
         }
-        ownerByFingerprint.set(key, environment.environmentId);
         ownerScanByFingerprint.set(key, { environment, source });
         sessionsByFingerprint.set(key, source.distinctSessions);
       }
@@ -227,7 +252,7 @@ function claimSources(environments: readonly EnvironmentUsage[]): {
   for (const environment of ordered) {
     for (const source of environment.summary.sources) {
       if (source.status !== "partial") continue;
-      const key = fingerprintKey(source.fingerprint);
+      const key = sourceKey(source.fingerprint);
       const owner = ownerScanByFingerprint.get(key);
       // A scan under another model filter counts different records, so its cells are not missing ones.
       if (
@@ -263,7 +288,7 @@ function claimSources(environments: readonly EnvironmentUsage[]): {
   }
 
   return {
-    ownerByFingerprint,
+    ownerScanByFingerprint,
     supplementalBucketsByEnvironment,
     sessionsByFingerprint,
     duplicates,
@@ -272,9 +297,10 @@ function claimSources(environments: readonly EnvironmentUsage[]): {
 
 function ownedContribution(
   environment: EnvironmentUsage,
-  ownerByFingerprint: ReadonlyMap<string, EnvironmentId>,
+  ownerScanByFingerprint: ReadonlyMap<string, { readonly source: UsageSource }>,
   supplementalBuckets: ReadonlySet<UsageBucket>,
   sessionsByFingerprint: ReadonlyMap<string, number>,
+  sourceKey: (fingerprint: UsageSourceFingerprint) => string,
 ): {
   readonly buckets: readonly UsageBucket[];
   readonly sessionsByProvider: ReadonlyMap<UsageProviderKind, number>;
@@ -284,8 +310,10 @@ function ownedContribution(
   const sessionsByProvider = new Map<UsageProviderKind, number>();
   for (const source of environment.summary.sources) {
     if (source.status === "missing") continue;
-    const key = fingerprintKey(source.fingerprint);
-    if (ownerByFingerprint.get(key) === environment.environmentId) {
+    const key = sourceKey(source.fingerprint);
+    // By source, not environment: one server can reach a directory through two
+    // mounts, and only the winning reading may count.
+    if (ownerScanByFingerprint.get(key)?.source === source) {
       const provider = source.fingerprint.provider;
       ownedProviders.add(provider);
       ownedSources.add(`${provider}\u0000${source.fingerprint.resolvedHomePath}`);
@@ -375,12 +403,13 @@ export function mergeUsage(
     }
   }
 
+  const sourceKey = sourceIdentity(current);
   const {
-    ownerByFingerprint,
+    ownerScanByFingerprint,
     supplementalBucketsByEnvironment,
     sessionsByFingerprint,
     duplicates,
-  } = claimSources(current);
+  } = claimSources(current, sourceKey);
 
   let costUsd = 0;
   let uncachedInputTokens = 0;
@@ -437,18 +466,19 @@ export function mergeUsage(
   for (const environment of current) {
     const { buckets, sessionsByProvider } = ownedContribution(
       environment,
-      ownerByFingerprint,
+      ownerScanByFingerprint,
       supplementalBucketsByEnvironment.get(environment.environmentId) ?? new Set(),
       sessionsByFingerprint,
+      sourceKey,
     );
     if (buckets.length > 0) contributingEnvironments.push(environment.environmentId);
     for (const source of environment.summary.sources) {
-      const key = fingerprintKey(source.fingerprint);
-      if (ownerByFingerprint.get(key) === environment.environmentId) {
+      const key = sourceKey(source.fingerprint);
+      if (ownerScanByFingerprint.get(key)?.source === source) {
         accountSources.set(key, { environmentId: environment.environmentId, source });
       }
     }
-    const accountKeyOf = sourceKeyOfBucket(environment.summary);
+    const accountSourceOf = sourceOfBucket(environment.summary);
 
     for (const [providerKind, providerSessions] of sessionsByProvider) {
       sessions += providerSessions;
@@ -497,8 +527,9 @@ export function mergeUsage(
       provider.records += bucket.records;
       providerAccumulator.set(bucket.provider, provider);
 
-      const accountKey = accountKeyOf(bucket);
-      if (accountKey !== undefined) {
+      const accountSource = accountSourceOf(bucket);
+      if (accountSource !== undefined) {
+        const accountKey = sourceKey(accountSource.fingerprint);
         const account = accountAccumulator.get(accountKey) ?? { costUsd: 0, totalTokens: 0 };
         account.costUsd += bucket.costUsd;
         account.totalTokens += tokens;
@@ -532,7 +563,9 @@ export function mergeUsage(
       };
       model.records += bucket.records;
       model.unpricedRecords += bucket.unpricedRecords;
-      if (bucket.records > 0) {
+      if (bucket.unpricedTokens !== undefined) {
+        model.unpricedTokens += bucket.unpricedTokens;
+      } else if (bucket.records > 0) {
         model.unpricedTokens += (tokens * bucket.unpricedRecords) / bucket.records;
       }
       modelAccumulator.set(modelKey, model);
@@ -579,7 +612,7 @@ export function mergeUsage(
       ([key, { environmentId, source }]): UsageAccountTotals & { provider: UsageProviderKind } => {
         const totals = accountAccumulator.get(key);
         return {
-          key,
+          key: usageSourceKey(source),
           provider: source.fingerprint.provider,
           environmentId,
           resolvedHomePath: source.fingerprint.resolvedHomePath,
