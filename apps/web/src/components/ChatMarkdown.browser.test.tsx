@@ -852,3 +852,28 @@ describe("ChatMarkdown host media", () => {
     expect(screen.container.textContent).not.toContain("Retry video");
   });
 });
+// # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+
+it.each([true, false])(
+  "preserves Obsidian navigation and blocks commands, raw HTML %s",
+  async (parseRawHtml) => {
+    setup();
+    const href = "obsidian://open?vault=Notes&file=Research%2FShared%20approaches";
+    // const screen = await render(
+    await using screen = await render(
+      <ChatMarkdown
+        cwd="/tmp/project"
+        parseRawHtml={parseRawHtml}
+        text={`[Open note](${href})\n\n[Create note](obsidian://new?vault=Notes&file=Note)\n\n![Not a launcher](${href})\n\n<a href="${href}">HTML note</a>`}
+      />,
+    );
+    const note = screen.container.querySelector<HTMLAnchorElement>('a[href^="obsidian://open"]');
+    expect(note?.getAttribute("href")).toBe(href);
+    expect(note?.textContent).toContain("📝");
+    expect(screen.container.innerHTML).not.toContain("obsidian://new");
+    expect(screen.container.querySelector("img")?.getAttribute("src") ?? "").not.toContain(
+      "obsidian:",
+    );
+  },
+);
+// # DPALUCH - changes END [obsidian-links]

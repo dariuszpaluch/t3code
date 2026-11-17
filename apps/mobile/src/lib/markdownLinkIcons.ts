@@ -20,3 +20,10 @@ export function markdownLinkIcon(host: string): MarkdownLinkIcon | null {
     ? { source, tints: isMonochromeSourceControlIcon(definition.icon) }
     : null;
 }
+// # DPALUCH - changes BEGIN [obsidian-emoji]: Identify Obsidian links without changing their labels or targets.
+
+export const OBSIDIAN_LINK_ICON: MarkdownLinkIcon = {
+  source: require("../../assets/link-icons/obsidian.png"),
+  tints: false,
+};
+// # DPALUCH - changes END [obsidian-emoji]

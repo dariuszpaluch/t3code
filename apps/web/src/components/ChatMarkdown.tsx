@@ -1,3 +1,6 @@
+// # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+import { parseObsidianOpenUrl } from "@t3tools/shared/obsidianUri";
+// # DPALUCH - changes END [obsidian-links]
 import { clientHostEnvironmentAtom } from "../state/clientHostEnvironment";
 import { buildFileLinkParentSuffixByPath, fileLinkLabel } from "@t3tools/shared/fileLinks";
 import {
@@ -418,7 +421,22 @@ const CHAT_MARKDOWN_LITERAL_HTML_REHYPE_PLUGINS = [
   rehypeChipPunctuation,
 ] satisfies NonNullable<ReactMarkdownOptions["rehypePlugins"]>;
 
-function markdownUrlTransform(href: string) {
+// # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+/* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+// function markdownUrlTransform(href: string) {
+//   if (parseAssistantCitationHref(href)) return href;
+//   if (parseComposerContextHref(href)) return href;
+//   if (parseThreadLinkHref(href)) return href;
+//   if (isWindowsDrivePathHref(href)) return href;
+//   if (isLocalEditorFileHref(href)) return href;
+//   return rewriteMarkdownFileUriHref(href) ?? defaultUrlTransform(href);
+// }
+/* oxlint-enable t3code/no-low-value-comments */
+function markdownUrlTransform(href: string, key: string) {
+  if (key === "href") {
+    const obsidianUrl = parseObsidianOpenUrl(href);
+    if (obsidianUrl !== null) return obsidianUrl;
+  }
   if (parseAssistantCitationHref(href)) return href;
   if (parseComposerContextHref(href)) return href;
   if (parseThreadLinkHref(href)) return href;
@@ -426,6 +444,7 @@ function markdownUrlTransform(href: string) {
   if (isLocalEditorFileHref(href)) return href;
   return rewriteMarkdownFileUriHref(href) ?? defaultUrlTransform(href);
 }
+// # DPALUCH - changes END [obsidian-links]
 
 const NO_MARKDOWN_EDITORS: ReadonlyArray<EditorId> = [];
 
@@ -1366,6 +1385,13 @@ const CHAT_MARKDOWN_COMPONENTS = {
             });
           }}
         >
+          {/* # DPALUCH - changes BEGIN [obsidian-emoji]: Identify Obsidian links without changing their labels or targets. */}
+          {hasText && href && parseObsidianOpenUrl(href) !== null ? (
+            <span aria-hidden className="ms-[0.25em] me-[0.2em] select-none">
+              📝
+            </span>
+          ) : null}
+          {/* # DPALUCH - changes END [obsidian-emoji] */}
           {faviconHost && hasText && !isPullRequestAutolink ? (
             <MarkdownExternalLinkContent host={faviconHost} plainText={plainHastText(node)}>
               {linkChildren}

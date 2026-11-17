@@ -1,3 +1,6 @@
+// # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+import { parseObsidianOpenUrl } from "@t3tools/shared/obsidianUri";
+// # DPALUCH - changes END [obsidian-links]
 import { fileBasename } from "@t3tools/shared/path";
 import { fileLinkLabel } from "@t3tools/shared/fileLinks";
 import {
@@ -278,13 +281,25 @@ export function resolveMarkdownLinkPresentation(href: string): MarkdownLinkPrese
     };
   }
 
+  // # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+  /* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+  //   return {
+  //     kind: "link",
+  //     href:
+  //       /^(?:mailto|tel):/i.test(normalized) || parseThreadLinkHref(normalized) !== null
+  //         ? normalized
+  //         : null,
+  //   };
+  /* oxlint-enable t3code/no-low-value-comments */
   return {
     kind: "link",
     href:
-      /^(?:mailto|tel):/i.test(normalized) || parseThreadLinkHref(normalized) !== null
+      parseObsidianOpenUrl(normalized) ??
+      (/^(?:mailto|tel):/i.test(normalized) || parseThreadLinkHref(normalized) !== null
         ? normalized
-        : null,
+        : null),
   };
+  // # DPALUCH - changes END [obsidian-links]
 }
 
 export function resolveMarkdownInlineCodePresentation(

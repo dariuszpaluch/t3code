@@ -1,3 +1,6 @@
+// # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+import { parseObsidianOpenUrl } from "@t3tools/shared/obsidianUri";
+// # DPALUCH - changes END [obsidian-links]
 import { MAC_PERMISSION_SETTINGS_URLS } from "../permissions/MacPermission.ts";
 import {
   isLocalEditorFileUrl,
@@ -56,12 +59,23 @@ export function parseSafeExternalUrl(rawUrl: unknown): Option.Option<string> {
 
   try {
     const url = new URL(rawUrl);
+    // # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+    /* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+    //     return SAFE_WEB_PROTOCOLS.has(url.protocol) ||
+    //       isAppLaunchUrl(url) ||
+    //       isRemoteEditorUrl(url) ||
+    //       isLocalEditorFileUrl(url)
+    //       ? Option.some(url.href)
+    //       : Option.none();
+    /* oxlint-enable t3code/no-low-value-comments */
     return SAFE_WEB_PROTOCOLS.has(url.protocol) ||
       isAppLaunchUrl(url) ||
       isRemoteEditorUrl(url) ||
-      isLocalEditorFileUrl(url)
+      isLocalEditorFileUrl(url) ||
+      parseObsidianOpenUrl(rawUrl) !== null
       ? Option.some(url.href)
       : Option.none();
+    // # DPALUCH - changes END [obsidian-links]
   } catch {
     return Option.none();
   }

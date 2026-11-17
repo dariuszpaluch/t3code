@@ -19,6 +19,26 @@ vi.mock("electron", () => ({
 import * as ElectronShell from "./ElectronShell.ts";
 
 describe("ElectronShell", () => {
+  // # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+  it.effect("opens Obsidian notes without permitting note-writing actions", () =>
+    Effect.gen(function* () {
+      openExternalMock.mockResolvedValue(undefined);
+      const shell = yield* ElectronShell.ElectronShell;
+      const href = "obsidian://open?vault=Notes&file=Research%2FShared%20approaches";
+      assert.equal(yield* shell.openExternal(href), true);
+      for (const blocked of [
+        "obsidian://new?vault=Notes&file=Note&content=replace&overwrite=true",
+        "obsidian://daily?vault=Notes&content=append",
+        "obsidian://advanced-uri?vault=Notes&commandname=delete",
+        "obsidian://open?vault=Notes&file=Note&content=replace",
+      ]) {
+        assert.equal(yield* shell.openExternal(blocked), false);
+      }
+      assert.deepEqual(openExternalMock.mock.calls, [[href]]);
+    }).pipe(Effect.provide(ElectronShell.layer)),
+  );
+
+  // # DPALUCH - changes END [obsidian-links]
   beforeEach(() => {
     openExternalMock.mockReset();
     writeTextMock.mockReset();

@@ -18,6 +18,23 @@ afterEach(() => {
 });
 
 describe("tryOpenExternalUrl", () => {
+  // # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+  it("opens Obsidian notes but never sends writing commands to the OS", async () => {
+    openURL.mockResolvedValue(undefined);
+    const href = "obsidian://open?vault=Notes&file=Research%2FShared%20approaches";
+    await expect(tryOpenExternalUrl(href, "markdown-link")).resolves.toBe(true);
+    for (const blocked of [
+      "obsidian://new?vault=Notes&file=Note&content=replace",
+      "  obsidian://new?vault=Notes&file=Note",
+      "obsi\tdian://new?vault=Notes&file=Note",
+      "obsidian://open?vault=Notes&file=Note&overwrite=true",
+    ]) {
+      await expect(tryOpenExternalUrl(blocked, "markdown-link")).resolves.toBe(false);
+    }
+    expect(openURL).toHaveBeenCalledExactlyOnceWith(href);
+  });
+
+  // # DPALUCH - changes END [obsidian-links]
   it("keeps provider sign-in URLs unchanged and out of failure logs", async () => {
     const url =
       "https://accounts.google.com/o/oauth2/v2/auth?state=private-state&code_challenge=private-challenge&redirect_uri=http%3A%2F%2F127.0.0.1%3A43123%2F";

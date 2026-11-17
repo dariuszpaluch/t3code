@@ -1,5 +1,24 @@
 # T3 Code
 
+<!-- # DPALUCH - changes BEGIN [fork-traceability]: Make new fork changes easy to find and explain. -->
+
+## Dpaluch fork change tracking
+
+These fork-specific rules apply to new changes from 2026-11-17. They override the general preference against history comments.
+
+- Update `dpaluch/CHANGELOG.md` for every new fork-specific change. Record the date, area, behavior, reason, affected files and validation.
+- Give each change a stable ID. Put matching `# DPALUCH - changes BEGIN [id]` and `# DPALUCH - changes END [id]` comments around every changed block. Explain the benefit in the BEGIN comment.
+- When replacing a line or block, retain its previous text as inactive comments immediately above the active replacement. Never leave both versions active. Mark pure additions without inventing an old version.
+- Use valid comments for the format: `//` in TypeScript, `{/* ... */}` in JSX children, `#` in shell or Python, and `<!-- ... -->` in Markdown. Do not insert comment text into string values.
+- JSON and binary files cannot hold these comments. Record their path and before/after details or checksum in the matching changelog entry. Keep those formats valid.
+- Keep markers outside a complete statement or JSX element so formatting cannot move an END marker into an expression.
+- If a lint rule rejects the required original code comments, limit its exception to those comments. Keep the active implementation checked.
+- Check that annotations do not change runtime behavior. Run focused checks for the affected code.
+- Keep original commits and merge history. Do not amend or rebase to rewrite older changes.
+- Historical fork changes remain a separate deferred backfill task. Do not annotate them as part of an unrelated change.
+
+<!-- # DPALUCH - changes END [fork-traceability] -->
+
 T3 Code is a minimal GUI for coding agents. A Node WebSocket server wraps provider CLIs and agents (Codex, Claude Code, Cursor, Grok, OpenCode, Antigravity, Kiro, Pi, Muse Code, fx) and serves web, desktop, and mobile clients.
 
 You can think of T3 Code as an open source "bring-your-own-subscription" alternative to apps like Claude Desktop, Codex App, Cursor Glass and Conductor.
