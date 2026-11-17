@@ -1,3 +1,6 @@
+// # DPALUCH - changes BEGIN [obsidian-emoji]: Identify Obsidian links without changing their labels or targets.
+import { parseObsidianOpenUrl } from "@t3tools/shared/obsidianUri";
+// # DPALUCH - changes END [obsidian-emoji]
 import { modelChipIcon } from "../lib/contextChipIconSource";
 import { useMemo } from "react";
 import { Image } from "react-native";
@@ -8,7 +11,10 @@ import { CONTEXT_CHIP_ICON_SOURCES } from "../lib/contextChipIcons.generated";
 import { FONT_FAMILIES } from "../lib/fontFamilies";
 import { contextChipIconSource } from "../lib/contextChipIconSource";
 import { markdownFileIconSource } from "../lib/markdownFileIcons";
-import { markdownLinkIcon } from "../lib/markdownLinkIcons";
+// # DPALUCH - changes BEGIN [obsidian-emoji]: Identify Obsidian links without changing their labels or targets.
+// import { markdownLinkIcon } from "../lib/markdownLinkIcons";
+import { markdownLinkIcon, OBSIDIAN_LINK_ICON } from "../lib/markdownLinkIcons";
+// # DPALUCH - changes END [obsidian-emoji]
 import { useUniwindTheme } from "../lib/useUniwindTheme";
 import { resolveMarkdownFileIcon, resolveMarkdownLinkPresentation } from "../lib/markdownLinks";
 import type {
@@ -93,7 +99,15 @@ function presentation(
       icon: markdownFileIconSource(link.icon),
       chip: { accent: contextChipPresentation("mention").accent, tintsIcon: false },
     };
-  const icon = link.kind === "external" ? markdownLinkIcon(link.host) : null;
+  // # DPALUCH - changes BEGIN [obsidian-emoji]: Identify Obsidian links without changing their labels or targets.
+  //   const icon = link.kind === "external" ? markdownLinkIcon(link.host) : null;
+  const icon =
+    parseObsidianOpenUrl(url) !== null
+      ? OBSIDIAN_LINK_ICON
+      : link.kind === "external"
+        ? markdownLinkIcon(link.host)
+        : null;
+  // # DPALUCH - changes END [obsidian-emoji]
   return icon
     ? {
         color: props.textStyle.linkColor,

@@ -3,6 +3,19 @@ import { describe, expect, it } from "vite-plus/test";
 import { resolveMarkdownLinkPresentation } from "./markdownLinks";
 
 describe("resolveMarkdownLinkPresentation", () => {
+  // # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+  it("keeps note-opening URLs and rejects other Obsidian commands", () => {
+    const href = "obsidian://open?vault=Notes&file=Research%2FShared%20approaches";
+    expect(resolveMarkdownLinkPresentation(href)).toEqual({ kind: "link", href });
+    for (const blocked of [
+      "obsidian://new?vault=Notes&file=Note&content=replace",
+      "obsidian://open?vault=Notes&file=Note&overwrite=true",
+    ]) {
+      expect(resolveMarkdownLinkPresentation(blocked)).toEqual({ kind: "link", href: null });
+    }
+  });
+
+  // # DPALUCH - changes END [obsidian-links]
   it("opens relative directory links as workspace paths", () => {
     expect(resolveMarkdownLinkPresentation("src/")).toMatchObject({
       kind: "file",

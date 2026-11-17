@@ -232,6 +232,9 @@ const CHAT_MARKDOWN_SANITIZE_SCHEMA = {
     href: [
       ...(defaultSchema.protocols?.href ?? []),
       "file",
+      // # DPALUCH - changes BEGIN [obsidian-links]: Open Obsidian notes while keeping writing and plugin commands blocked.
+      "obsidian", // ChatMarkdown validates the action and parameters before navigation.
+      // # DPALUCH - changes END [obsidian-links]
       "t3-citation",
       "t3-context",
       THREAD_LINK_PROTOCOL,
