@@ -35,7 +35,7 @@ export type MarkdownLinkPresentation =
 
 export type MarkdownFileIcon = keyof typeof MARKDOWN_FILE_ICON_SOURCES;
 
-export type MarkdownLinkIcon = "github";
+export type MarkdownLinkIcon = "github" | "obsidian";
 
 export function resolveMarkdownLinkIcon(host: string): MarkdownLinkIcon | null {
   const hostname = host.toLowerCase();

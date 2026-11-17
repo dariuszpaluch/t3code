@@ -3038,6 +3038,11 @@ const CHAT_MARKDOWN_COMPONENTS = {
             });
           }}
         >
+          {hasText && href && parseObsidianOpenUrl(href) !== null ? (
+            <span aria-hidden className="ms-[0.25em] me-[0.2em] select-none">
+              📝
+            </span>
+          ) : null}
           {faviconHost && hasText && !isPullRequestAutolink ? (
             <MarkdownExternalLinkContent host={faviconHost} plainText={plainHastText(node)}>
               {linkChildren}

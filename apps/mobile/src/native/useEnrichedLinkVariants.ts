@@ -1,3 +1,4 @@
+import { parseObsidianOpenUrl } from "@t3tools/shared/obsidianUri";
 import { useMemo } from "react";
 import { Image } from "react-native";
 import type {
@@ -38,12 +39,17 @@ function presentation(
       label: link.label,
       icon: markdownFileIconSource(link.icon),
     };
-  const icon = link.kind === "external" ? resolveMarkdownLinkIcon(link.host) : null;
+  const icon =
+    parseObsidianOpenUrl(url) !== null
+      ? "obsidian"
+      : link.kind === "external"
+        ? resolveMarkdownLinkIcon(link.host)
+        : null;
   return icon
     ? {
         color: props.textStyle.linkColor,
         icon: markdownLinkIconSource(icon),
-        iconTintColor: props.textStyle.linkColor,
+        iconTintColor: icon === "github" ? props.textStyle.linkColor : undefined,
       }
     : undefined;
 }

@@ -4,6 +4,7 @@ import type { MarkdownLinkIcon } from "./markdownLinks";
 
 const MARKDOWN_LINK_ICON_SOURCES = {
   github: require("../../assets/link-icons/github.png"),
+  obsidian: require("../../assets/link-icons/obsidian.png"),
 } as const satisfies Readonly<Record<MarkdownLinkIcon, ImageSourcePropType>>;
 
 export function markdownLinkIconSource(icon: MarkdownLinkIcon): ImageSourcePropType {

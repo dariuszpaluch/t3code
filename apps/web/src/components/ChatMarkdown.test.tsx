@@ -1392,7 +1392,7 @@ it.each([true, false])(
         );
       });
       const links = [...container.querySelectorAll("a")];
-      const note = links.find((link) => link.textContent === "Open note");
+      const note = links.find((link) => link.textContent?.endsWith("Open note"));
       expect(note).toBeDefined();
       let clickedHref: string | undefined;
       note!.addEventListener("click", (event) => {
@@ -1406,7 +1406,7 @@ it.each([true, false])(
       );
       expect(container.querySelector("img")?.getAttribute("src") ?? "").not.toContain("obsidian:");
       if (parseRawHtml) {
-        expect(links.find((link) => link.textContent === "HTML note")?.href).toBe(href);
+        expect(links.find((link) => link.textContent?.endsWith("HTML note"))?.href).toBe(href);
       }
     } finally {
       await act(async () => root.unmount());
