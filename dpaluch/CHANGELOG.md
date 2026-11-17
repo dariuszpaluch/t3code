@@ -10,6 +10,14 @@ Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstr
 
 ## 2026-11-17
 
+### public-fork-note-links
+
+- **Area:** agent instructions for the public fork.
+- **Change:** prohibit private information in repository content. Require both Obsidian and source-file links for notes in private chat replies.
+- **Why:** open notes in Obsidian or T3 Code's right panel while keeping actual vault names and paths outside the repository.
+- **Files:** `AGENTS.md`, `dpaluch/CHANGELOG.md`.
+- **Validation:** reviewed the documentation diff for private information. `git diff --check` passes. No runtime code changed.
+
 ### fork-backfill
 
 - **Area:** source traceability of the older fork changes.

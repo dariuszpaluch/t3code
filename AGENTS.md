@@ -1,5 +1,21 @@
 # T3 Code
 
+<!-- # DPALUCH - changes BEGIN [public-fork-note-links]: Keep private information out of this public fork and provide note source links in chat. -->
+
+## Public fork
+
+This is dpaluch's public fork of `pingdotgg/t3code`, with custom changes. The owner updates it from upstream manually.
+
+- Treat all tracked files, commit messages, and pull request content as public.
+- Never include private information from local files, conversations, or connected services in repository content.
+- Private information includes personal filesystem paths, vault names, note contents, internal company details, and credentials.
+- Use repository-relative paths and fictional examples. Keep private configuration outside tracked files.
+- Check each diff for private information before committing or publishing it.
+
+For Obsidian notes in private chat replies, provide both the Obsidian link and a separate source-file link. The source-file link must use the note's absolute path so T3 Code can open it in the right panel. Enclose the link destination in angle brackets if the path contains spaces. Keep actual vault names and paths in private local configuration, outside this repository.
+
+<!-- # DPALUCH - changes END [public-fork-note-links] -->
+
 <!-- # DPALUCH - changes BEGIN [fork-traceability]: Make new fork changes easy to find and explain. -->
 
 ## Dpaluch fork change tracking
