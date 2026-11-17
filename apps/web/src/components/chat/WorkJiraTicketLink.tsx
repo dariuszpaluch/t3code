@@ -1,3 +1,4 @@
+// # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name.
 import { TicketIcon } from "lucide-react";
 
 import { readLocalApi } from "../../localApi";
@@ -37,3 +38,4 @@ export function WorkJiraTicketLink(props: {
     </a>
   );
 }
+// # DPALUCH - changes END [work-jira-link]

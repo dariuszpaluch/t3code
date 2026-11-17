@@ -14,7 +14,9 @@ export const THREAD_DETAILS_ITEMS = [
   { id: "sideChats", label: "Side chats", defaultVisible: true },
   { id: "usage", label: "Usage limits", defaultVisible: false },
   { id: "context", label: "Context window", defaultVisible: false },
+  // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
   { id: "session", label: "Session cost and cache", defaultVisible: false },
+  // # DPALUCH - changes END [session-cost-cache]
 ] as const;
 
 export type ThreadDetailsItemId = (typeof THREAD_DETAILS_ITEMS)[number]["id"];

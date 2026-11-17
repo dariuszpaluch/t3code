@@ -2,7 +2,9 @@ import {
   USAGE_CONTRACT_VERSION,
   USAGE_MERGE_COMPATIBLE_SINCE,
   type EnvironmentId,
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   ProviderInstanceId,
+  // # DPALUCH - changes END [account-usage]
   type UsageBucket,
   type UsageDay,
   type UsageProviderKind,
@@ -11,6 +13,10 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 import * as Schema from "effect/Schema";
 
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+/* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+// import { isModelCostUnknown, mergeUsage, type EnvironmentUsage } from "./usageMerge.ts";
+/* oxlint-enable t3code/no-low-value-comments */
 import {
   isModelCostUnknown,
   mergeUsage,
@@ -18,6 +24,7 @@ import {
   withoutUsageSources,
   type EnvironmentUsage,
 } from "./usageMerge.ts";
+// # DPALUCH - changes END [account-usage]
 
 const decodeSummary = Schema.decodeUnknownSync(UsageSummary);
 
@@ -52,7 +59,9 @@ function summary(
     volumeId?: string;
     physicalSourceId?: string;
     distinctSessions?: number;
+    // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
     providerInstanceIds?: readonly string[];
+    // # DPALUCH - changes END [account-usage]
   }[],
   contractVersion: number = USAGE_CONTRACT_VERSION,
 ): UsageSummary {
@@ -78,6 +87,7 @@ function summary(
       skippedFiles: 0,
       malformedRecords: 0,
       distinctSessions: source.distinctSessions ?? 1,
+      // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
       ...(source.providerInstanceIds === undefined
         ? {}
         : {
@@ -85,6 +95,7 @@ function summary(
               ProviderInstanceId.make(id),
             ),
           }),
+      // # DPALUCH - changes END [account-usage]
       message: null,
     })),
     pricing: { status: "fresh", source: "litellm", fetchedAt: null, knownModels: 10 },
@@ -722,6 +733,7 @@ describe("mergeUsage", () => {
     expect(merged.providers[0]?.sessions).toBe(1);
   });
 
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   describe("accounts", () => {
     const twoClaudeHomes = summary(
       [
@@ -798,4 +810,5 @@ describe("mergeUsage", () => {
       ).toEqual(["/a/.claude"]);
     });
   });
+  // # DPALUCH - changes END [account-usage]
 });

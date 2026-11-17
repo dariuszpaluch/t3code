@@ -5,8 +5,10 @@ import {
   type ServerSettings as ServerSettingsValue,
   type UsageProviderKind,
   type UsageSource,
+  // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
   type UsagePriceInput,
   type UsagePriceResult,
+  // # DPALUCH - changes END [price-usage]
   type UsagePricing,
   type UsageSummary,
   type UsageSummaryInput,
@@ -46,7 +48,9 @@ import {
   createOverrideRateTable,
   isUnlistedModel,
   parseRateTable,
+  // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
   priceUsage,
+  // # DPALUCH - changes END [price-usage]
   type RateTable,
 } from "./usagePricing.ts";
 import {
@@ -109,7 +113,9 @@ interface TranscriptSource {
   readonly volumeId: string;
   readonly physicalSourceId?: string;
   readonly fileName?: string;
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   readonly providerInstanceIds: ProviderInstanceId[];
+  // # DPALUCH - changes END [account-usage]
 }
 
 const RatesCacheFile = Schema.Struct({
@@ -165,9 +171,11 @@ export class UsageService extends Context.Service<
   {
     readonly readSummary: (input: UsageSummaryInput) => Effect.Effect<UsageSummary, UsageReadError>;
     readonly refreshRates: Effect.Effect<UsagePricing>;
+    // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
     readonly priceUsage: (
       input: UsagePriceInput,
     ) => Effect.Effect<UsagePriceResult, UsageReadError>;
+    // # DPALUCH - changes END [price-usage]
   }
 >()("t3/usage/UsageService") {}
 
@@ -399,6 +407,10 @@ export const make = Effect.gen(function* () {
   ) {
     const dirs: Array<TranscriptSource> = [];
     const pending: Array<ScannedDir> = [];
+    // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+    /* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+    // const seen = new Set<string>();
+    /* oxlint-enable t3code/no-low-value-comments */
     // Several instances can share one directory; each source lists all of them.
     const seen = new Map<string, { readonly providerInstanceIds: ProviderInstanceId[] }>();
     const addInstance = (key: string, instanceId: ProviderInstanceId): boolean => {
@@ -409,8 +421,15 @@ export const make = Effect.gen(function* () {
       }
       return true;
     };
+    // # DPALUCH - changes END [account-usage]
     for (const { driver, reader } of transcriptReaders) {
       const { provider, format } = reader;
+      // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+
+      // const directories = yield* Effect.forEach(
+      //   yield* usageInstances(driver, settings),
+      //   (instance) => reader.directories(instance, { awaitRefresh }),
+      // );
       const directories = yield* Effect.forEach(
         yield* usageInstances(driver, settings),
         (instance) =>
@@ -418,6 +437,54 @@ export const make = Effect.gen(function* () {
             entries.map((entry) => ({ ...entry, instanceId: instance.instanceId })),
           ),
       );
+      // # DPALUCH - changes END [account-usage]
+      // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+      /* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+      // for (const { dir: directory, fileName, refreshing } of directories.flat()) {
+      //   if (refreshing) {
+      //     const key = `${provider}\0${directory}`;
+      //     if (seen.has(key)) continue;
+      //     seen.add(key);
+      //     pending.push({ provider, dir: directory, volumeId: "", files: [], refreshing });
+      //     continue;
+      //   }
+      //   const sourceKey = provider + "\0" + directory;
+      //   const previous = sourceCache.get(sourceKey);
+      //   const dir = yield* fileSystem
+      //     .realPath(directory)
+      //     .pipe(Effect.orElseSucceed(() => previous?.dir ?? directory));
+      //   const currentVolumeId = yield* Effect.promise(() => readDirectoryVolumeId(dir));
+      //   const hasRetainedHistory = fileCache
+      //     .entries()
+      //     .some(
+      //       ([filePath, entry]) =>
+      //         entry.provider === provider &&
+      //         entry.mtimeMs >= retentionCutoffMs &&
+      //         (entry.records.length + entry.tailRecords.length > 0 || entry.malformedRecords > 0) &&
+      //         isWithinDirectory(filePath, dir),
+      //     );
+      //   const volumeId =
+      //     previous?.dir === dir && (hasRetainedHistory || !currentVolumeId)
+      //       ? previous.volumeId || currentVolumeId
+      //       : currentVolumeId;
+      //   if (previous?.dir !== dir || previous.volumeId !== volumeId) {
+      //     sourceCache.set(sourceKey, { dir, volumeId });
+      //     cacheDirty = true;
+      //   }
+      //   const key = `${provider}\0${dir}`;
+      //   if (seen.has(key)) continue;
+      //   seen.add(key);
+      //   const sourceId = yield* physicalSourceId(dir);
+      //   dirs.push({
+      //     provider,
+      //     format,
+      //     dir,
+      //     volumeId,
+      //     ...(sourceId === undefined ? {} : { physicalSourceId: sourceId }),
+      //     ...(fileName === undefined ? {} : { fileName }),
+      //   });
+      // }
+      /* oxlint-enable t3code/no-low-value-comments */
       for (const { dir: directory, fileName, refreshing, instanceId } of directories.flat()) {
         if (refreshing) {
           const key = `${provider}\0${directory}`;
@@ -472,6 +539,7 @@ export const make = Effect.gen(function* () {
         seen.set(key, source);
         dirs.push(source);
       }
+      // # DPALUCH - changes END [account-usage]
     }
     return { dirs, pending };
   });
@@ -722,7 +790,9 @@ export const make = Effect.gen(function* () {
     /** Every transcript path the walk listed, in walk order, whatever its mtime. */
     readonly walked?: readonly string[];
     readonly refreshing?: true;
+    // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
     readonly providerInstanceIds?: readonly ProviderInstanceId[];
+    // # DPALUCH - changes END [account-usage]
   }
 
   const scanTranscriptDir = Effect.fn("UsageService.scanTranscriptDir")(function* (
@@ -730,14 +800,21 @@ export const make = Effect.gen(function* () {
     windowStartMs: number,
     fromMemory: boolean,
   ) {
+    // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+    /* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+    // const { provider, format, dir, volumeId, physicalSourceId, fileName } = source;
+    /* oxlint-enable t3code/no-low-value-comments */
     const { provider, format, dir, volumeId, physicalSourceId, fileName, providerInstanceIds } =
       source;
+    // # DPALUCH - changes END [account-usage]
     const identity = {
       provider,
       dir,
       volumeId,
       ...(physicalSourceId === undefined ? {} : { physicalSourceId }),
+      // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
       providerInstanceIds,
+      // # DPALUCH - changes END [account-usage]
     };
     const exists = yield* fileSystem
       .exists(dir)
@@ -1098,7 +1175,9 @@ export const make = Effect.gen(function* () {
         message,
         refreshing,
         hostId: sourceHostId,
+        // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
         providerInstanceIds,
+        // # DPALUCH - changes END [account-usage]
       },
     ] of scannedDirs.entries()) {
       let scannedFiles = 0;
@@ -1176,9 +1255,11 @@ export const make = Effect.gen(function* () {
         ...(refreshing || (fromMemory && counted && transcriptFormats.has(provider))
           ? { refreshing: true }
           : {}),
+        // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
         ...(providerInstanceIds === undefined
           ? {}
           : { providerInstanceIds: [...providerInstanceIds] }),
+        // # DPALUCH - changes END [account-usage]
       });
     }
 
@@ -1288,6 +1369,8 @@ export const make = Effect.gen(function* () {
     return yield* Deferred.await(deferred);
   });
 
+  // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
+  // return { readSummary, refreshRates, awaitPersisted } as const;
   const priceUsageItems = Effect.fn("UsageService.priceUsage")(function* (input: UsagePriceInput) {
     const settings = yield* readSettings;
     yield* ensureRates(false);
@@ -1317,6 +1400,7 @@ export const make = Effect.gen(function* () {
   });
 
   return { readSummary, refreshRates, priceUsage: priceUsageItems, awaitPersisted } as const;
+  // # DPALUCH - changes END [price-usage]
 });
 
 export const layer = Layer.effect(UsageService, make);

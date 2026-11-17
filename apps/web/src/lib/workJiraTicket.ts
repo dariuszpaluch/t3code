@@ -1,3 +1,4 @@
+// # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name.
 // A Jira key at the start of the branch name or after a prefix: GAMG-337-fix, feature/GAMG-337-fix.
 const JIRA_KEY = /(?:^|\/)([A-Z][A-Z0-9]+-\d+)/;
 
@@ -30,3 +31,4 @@ export function workJiraTicket(input: {
   const key = jiraKeyOf(branch);
   return key === null ? null : { key, url: `${browseUrl.replace(/\/+$/, "")}/${key}` };
 }
+// # DPALUCH - changes END [work-jira-link]

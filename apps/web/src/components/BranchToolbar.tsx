@@ -99,8 +99,10 @@ interface BranchToolbarProps {
   onComposerFocusRequest?: () => void;
   /** Shown at the end of the composer strip, such as the new thread's permissions. */
   trailing?: ReactNode;
+  // # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name.
   /** Optional items just left of the branch name, so the branch keeps its place. */
   beforeBranch?: ReactNode;
+  // # DPALUCH - changes END [work-jira-link]
   availableEnvironments?: readonly EnvironmentOption[];
   onEnvironmentChange?: (environmentId: EnvironmentId) => void;
 }
@@ -612,7 +614,9 @@ export const BranchToolbar = memo(function BranchToolbar({
   availableEnvironments,
   onEnvironmentChange,
   trailing,
+  // # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name.
   beforeBranch,
+  // # DPALUCH - changes END [work-jira-link]
 }: BranchToolbarProps) {
   const branchSelectorRef = useRef<BranchToolbarBranchSelectorHandle>(null);
   const threadRef = scopeThreadRef(environmentId, threadId);
@@ -804,7 +808,9 @@ export const BranchToolbar = memo(function BranchToolbar({
         </div>
       ) : null}
 
+      {/* # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name. */}
       {beforeBranch}
+      {/* # DPALUCH - changes END [work-jira-link] */}
       {showGitControls ? (
         <BranchToolbarBranchSelector
           forceNewWorktree={forceNewWorktree}

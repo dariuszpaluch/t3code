@@ -1,15 +1,23 @@
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 import { useAtomValue } from "@effect/atom-react";
+// # DPALUCH - changes END [session-cost-cache]
 import type {
+  // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
   EnvironmentId,
   OrchestrationV2ProviderTurn,
   OrchestrationV2ProviderTurnTokenUsage,
+  // # DPALUCH - changes END [session-cost-cache]
   ProviderInstanceId,
   ServerProvider,
   ServerProviderUsageWindow,
   UsageLimitSourceSnapshots,
+  // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
   UsagePriceItemInput,
+  // # DPALUCH - changes END [session-cost-cache]
 } from "@t3tools/contracts";
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 import { formatTokens, formatUsd } from "@t3tools/shared/usageFormat";
+// # DPALUCH - changes END [session-cost-cache]
 import {
   collectProviderUsageLimits,
   formatDuration,
@@ -18,16 +26,22 @@ import {
   paceOf,
   remainingPercent,
 } from "@t3tools/shared/usageLimits";
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 import { AsyncResult } from "effect/reactivity";
+// # DPALUCH - changes END [session-cost-cache]
 import type { ReactNode } from "react";
 
 import { usePrimarySettings } from "../../hooks/useSettings";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import type { ContextWindowSnapshot } from "@t3tools/client-runtime/state/context-window";
 import { formatContextWindowTokens } from "../../lib/contextWindow";
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 import { cacheHitPercent, summarizeSessionUsage } from "../../lib/sessionUsage";
+// # DPALUCH - changes END [session-cost-cache]
 import { cn } from "../../lib/utils";
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 import { serverEnvironment } from "../../state/server";
+// # DPALUCH - changes END [session-cost-cache]
 import { formatUpcomingTimestamp } from "../../timestampFormat";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { formatContextWindowCompactionMessage } from "./compaction.logic";
@@ -147,6 +161,7 @@ export function ThreadDetailsContext({ usage }: { readonly usage: ContextWindowS
   );
 }
 
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 export interface ThreadDetailsSessionInput {
   readonly environmentId: EnvironmentId;
   readonly providerTurns: ReadonlyArray<Pick<OrchestrationV2ProviderTurn, "turnTokenUsage">>;
@@ -297,6 +312,7 @@ function SessionCostRow({
     />
   );
 }
+// # DPALUCH - changes END [session-cost-cache]
 
 function LimitRow({
   window,
@@ -309,14 +325,19 @@ function LimitRow({
   const left = remainingPercent(window);
   const pace = paceOf(window, now);
   const resetsAt = window.resetsAt ? Date.parse(window.resetsAt) : Number.NaN;
+  // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
   // The reset time is in the row, so it can be read without the tooltip.
   const resetsIn = resetsAt > now ? ` · ${formatDuration(resetsAt - now)}` : "";
+  // # DPALUCH - changes END [session-cost-cache]
   return (
     <UsageRow
       label={window.label}
       fill={left}
       tone={left <= 10 ? "error" : left <= 20 ? "warning" : null}
+      // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
+      // value={`${left}%`}
       value={`${left}%${resetsIn}`}
+      // # DPALUCH - changes END [session-cost-cache]
       ariaValue={`${left}% left`}
       tooltip={
         <>

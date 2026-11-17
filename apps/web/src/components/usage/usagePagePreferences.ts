@@ -8,8 +8,10 @@ const UsagePagePreferencesSchema = Schema.Struct({
   metric: Schema.Literals(["cost", "tokens", "limits"]),
   windowDays: Schema.Literals([1, 7, 30, 90]),
   hiddenProviders: Schema.optional(Schema.Array(UsageProviderKind)),
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   /** Keys of hidden accounts, from `usageSourceKey`. */
   hiddenSources: Schema.optional(Schema.Array(Schema.String)),
+  // # DPALUCH - changes END [account-usage]
 });
 export type UsagePagePreferences = typeof UsagePagePreferencesSchema.Type;
 

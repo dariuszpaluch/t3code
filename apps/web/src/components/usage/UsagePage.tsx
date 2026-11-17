@@ -15,11 +15,13 @@ import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Cause from "effect/Cause";
 import { refreshUsageLimits } from "@t3tools/client-runtime/state/usage";
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
 import {
   listUsageAccounts,
   usageAccountLabels,
   type UsageAccount,
 } from "@t3tools/client-runtime/state/usage-accounts";
+// # DPALUCH - changes END [account-usage]
 import {
   updatingProvidersLabel,
   usageEnvironmentProgress,
@@ -29,7 +31,9 @@ import {
 import {
   isCompatibleUsageContractVersion,
   isModelCostUnknown,
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   usageSourceKey,
+  // # DPALUCH - changes END [account-usage]
   type DailyTotals,
   type HourlyTotals,
   type MergedUsage,
@@ -106,8 +110,10 @@ import {
   PROVIDER_PRESENTATION,
   providersWithUsage,
   rankProvidersByMetric,
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   setUsageAccountVisible,
   type UsageVisibility,
+  // # DPALUCH - changes END [account-usage]
 } from "./usageProviders";
 import {
   readUsagePagePreferences,
@@ -211,9 +217,22 @@ export function UsagePage() {
   const [selectedEnvironmentIds, setSelectedEnvironmentIds] =
     useState<ReadonlySet<EnvironmentId> | null>(null);
   const hiddenProviders = new Set(preferences.hiddenProviders);
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   const hiddenSources = new Set(preferences.hiddenSources);
+  // # DPALUCH - changes END [account-usage]
   const { days: windowDays, window } = windowSelection;
   const isPast24Hours = windowDays === 1;
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+  /* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+  // const {
+  //   merged: answeredUsage,
+  //   environments,
+  //   selectedEnvironments,
+  //   shown,
+  //   isPartial,
+  //   refresh,
+  // } = useUsage(window, selectedEnvironmentIds, hiddenProviders);
+  /* oxlint-enable t3code/no-low-value-comments */
   const {
     merged: answeredUsage,
     environments,
@@ -222,6 +241,7 @@ export function UsagePage() {
     isPartial,
     refresh,
   } = useUsage(window, selectedEnvironmentIds, hiddenProviders, hiddenSources);
+  // # DPALUCH - changes END [account-usage]
   const merged = shown?.merged ?? answeredUsage;
   const shownWindow = shown?.window ?? window;
   const shownHourly = shownWindow.resolution === "hour";
@@ -234,6 +254,7 @@ export function UsagePage() {
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
     reportFailure: false,
   });
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   const accountsByProvider = listUsageAccounts(selectedEnvironments);
   const instancesByEnvironment = new Map(
     Array.from(presentationsWithProviders, ([environmentId, presentation]) => [
@@ -249,6 +270,7 @@ export function UsagePage() {
       ...usageAccountLabels(accounts, instancesByEnvironment, environmentLabels),
     ]),
   );
+  // # DPALUCH - changes END [account-usage]
 
   const canReadDiagnostics = selectedEnvironments.some(
     (environment) => environment.canReadDiagnostics,
@@ -405,10 +427,13 @@ export function UsagePage() {
         <WorkspaceBreadcrumbItem current className="min-w-10">
           <UsageProviderFilter
             hiddenProviders={hiddenProviders}
+            // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+            // onChange={(next) => updatePreferences({ hiddenProviders: next })}
             hiddenSources={hiddenSources}
             accountsByProvider={accountsByProvider}
             accountLabels={accountLabels}
             onChange={(next) => updatePreferences(next)}
+            // # DPALUCH - changes END [account-usage]
           />
         </WorkspaceBreadcrumbItem>
       </WorkspaceBreadcrumb>
@@ -571,8 +596,10 @@ export function UsagePage() {
                 metric={metric === "tokens" ? "tokens" : "cost"}
                 selectedEnvironments={selectedEnvironments}
                 hiddenProviders={hiddenProviders}
+                // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
                 hiddenSources={hiddenSources}
                 accountLabels={accountLabels}
+                // # DPALUCH - changes END [account-usage]
                 refreshingUsage={refreshingUsage}
                 showChatGptSharing={showChatGptSharing}
                 onSelectModel={selectUsageModel}
@@ -621,8 +648,10 @@ function UsageOverview({
   metric,
   selectedEnvironments,
   hiddenProviders,
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   hiddenSources,
   accountLabels,
+  // # DPALUCH - changes END [account-usage]
   refreshingUsage,
   showChatGptSharing,
   onSelectModel,
@@ -636,8 +665,10 @@ function UsageOverview({
   readonly metric: "tokens" | "cost";
   readonly selectedEnvironments: readonly EnvironmentUsageStatus[];
   readonly hiddenProviders: ReadonlySet<UsageProviderKind>;
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   readonly hiddenSources: ReadonlySet<string>;
   readonly accountLabels: ReadonlyMap<string, string>;
+  // # DPALUCH - changes END [account-usage]
   readonly refreshingUsage: boolean;
   readonly showChatGptSharing: boolean;
   readonly onSelectModel: (key: string) => void;
@@ -664,9 +695,12 @@ function UsageOverview({
     selectedEnvironments.flatMap(
       (environment) =>
         environment.summary?.sources.filter(
+          // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+          // (source) => !hiddenProviders.has(source.fingerprint.provider),
           (source) =>
             !hiddenProviders.has(source.fingerprint.provider) &&
             !hiddenSources.has(usageSourceKey(source)),
+          // # DPALUCH - changes END [account-usage]
         ) ?? [],
     ),
   );
@@ -1313,6 +1347,67 @@ function UsageEnvironmentFilter({
   );
 }
 
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+/* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+// function UsageProviderFilter({
+//   hiddenProviders,
+//   onChange,
+// }: {
+//   readonly hiddenProviders: ReadonlySet<UsageProviderKind>;
+//   readonly onChange: (hiddenProviders: readonly UsageProviderKind[]) => void;
+// }) {
+//   const visible = PROVIDER_ORDER.filter((provider) => !hiddenProviders.has(provider));
+//   const label =
+//     visible.length === PROVIDER_ORDER.length
+//       ? "All providers"
+//       : visible.length === 0
+//         ? "No providers"
+//         : visible.length === 1
+//           ? PROVIDER_PRESENTATION[visible[0]!].label
+//           : `${visible.length} providers`;
+//
+//   return (
+//     <Menu>
+//       <MenuTrigger render={<InlineButton />} className="group/usage-provider min-w-0 max-w-full">
+//         <span className="min-w-0 truncate">{label}</span>
+//         <ChevronDownIcon
+//           className="size-3.5 shrink-0 text-muted-foreground opacity-60 transition-opacity group-hover/usage-provider:opacity-100 group-focus-visible/usage-provider:opacity-100 group-data-popup-open/usage-provider:opacity-100"
+//           aria-hidden
+//         />
+//       </MenuTrigger>
+//       <MenuPopup align="start">
+//         <MenuCheckboxItem
+//           checked={hiddenProviders.size === 0}
+//           closeOnClick={false}
+//           onCheckedChange={(checked) => onChange(checked ? [] : PROVIDER_ORDER)}
+//         >
+//           All providers
+//         </MenuCheckboxItem>
+//         <MenuSeparator />
+//         {PROVIDER_ORDER.map((provider) => (
+//           <MenuCheckboxItem
+//             key={provider}
+//             checked={!hiddenProviders.has(provider)}
+//             closeOnClick={false}
+//             onCheckedChange={(checked) =>
+//               onChange(
+//                 PROVIDER_ORDER.filter((entry) =>
+//                   entry === provider ? !checked : hiddenProviders.has(entry),
+//                 ),
+//               )
+//             }
+//           >
+//             <span className="flex min-w-0 items-center gap-2">
+//               <ProviderMark provider={provider} className="size-3.5" />
+//               <span className="truncate">{PROVIDER_PRESENTATION[provider].label}</span>
+//             </span>
+//           </MenuCheckboxItem>
+//         ))}
+//       </MenuPopup>
+//     </Menu>
+//   );
+// }
+/* oxlint-enable t3code/no-low-value-comments */
 function UsageProviderFilter({
   hiddenProviders,
   hiddenSources,
@@ -1407,6 +1502,7 @@ function UsageProviderFilter({
     </Menu>
   );
 }
+// # DPALUCH - changes END [account-usage]
 
 function UsageSkeleton() {
   return (

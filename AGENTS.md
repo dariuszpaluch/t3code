@@ -15,7 +15,10 @@ These fork-specific rules apply to new changes from 2026-11-17. They override th
 - If a lint rule rejects the required original code comments, limit its exception to those comments. Keep the active implementation checked.
 - Check that annotations do not change runtime behavior. Run focused checks for the affected code.
 - Keep original commits and merge history. Do not amend or rebase to rewrite older changes.
-- Historical fork changes remain a separate deferred backfill task. Do not annotate them as part of an unrelated change.
+
+<!-- - Historical fork changes remain a separate deferred backfill task. Do not annotate them as part of an unrelated change. -->
+
+- Fork changes made before 2026-11-17 are marked too (see `fork-backfill` in `dpaluch/CHANGELOG.md`). Do not annotate other historical code as part of an unrelated change.
 
 <!-- # DPALUCH - changes END [fork-traceability] -->
 

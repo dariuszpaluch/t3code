@@ -1,3 +1,4 @@
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 import type { TurnTokenUsage } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
@@ -110,3 +111,4 @@ describe("cacheHitPercent", () => {
     expect(cacheHitPercent({ inputTokens: 0, cacheReadTokens: 0 })).toBeNull();
   });
 });
+// # DPALUCH - changes END [session-cost-cache]

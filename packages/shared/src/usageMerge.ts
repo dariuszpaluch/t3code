@@ -1,7 +1,9 @@
 import {
   USAGE_MERGE_COMPATIBLE_SINCE,
   type EnvironmentId,
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   type ProviderInstanceId,
+  // # DPALUCH - changes END [account-usage]
   type UsageBucket,
   type UsageProviderKind,
   type UsageSource,
@@ -16,6 +18,7 @@ export interface EnvironmentUsage {
   readonly summary: UsageSummary;
 }
 
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
 /** One history source of a provider, usually one provider instance's home directory. */
 export interface UsageAccountTotals {
   /** Same value as `usageSourceKey` of the source. */
@@ -27,6 +30,7 @@ export interface UsageAccountTotals {
   readonly totalTokens: number;
   readonly sessions: number;
 }
+// # DPALUCH - changes END [account-usage]
 
 export interface ProviderTotals {
   readonly provider: UsageProviderKind;
@@ -36,8 +40,10 @@ export interface ProviderTotals {
   readonly sessions: number;
   readonly costShare: number;
   readonly tokenShare: number;
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   /** Sorted by cost. Buckets from servers that do not report a source path are left out. */
   readonly accounts: readonly UsageAccountTotals[];
+  // # DPALUCH - changes END [account-usage]
 }
 
 export interface ModelTotals {
@@ -133,6 +139,7 @@ function fingerprintKey(fingerprint: UsageSourceFingerprint): string {
   ].join(" ");
 }
 
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
 /** Stable identity of a usage source across environments, reloads and refreshes. */
 export const usageSourceKey = (source: UsageSource): string => fingerprintKey(source.fingerprint);
 
@@ -167,6 +174,7 @@ export function withoutUsageSources(
     sources: summary.sources.filter((source) => !hiddenSourceKeys.has(usageSourceKey(source))),
   };
 }
+// # DPALUCH - changes END [account-usage]
 
 // Sources are one directory when either their legacy key or their physicalSourceId matches.
 // physicalSourceId joins a directory read natively by Windows and through a WSL mount (path
@@ -459,8 +467,10 @@ export function mergeUsage(
       byProvider: Map<UsageProviderKind, { costUsd: number; totalTokens: number }>;
     }
   >();
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   const accountSources = new Map<string, { environmentId: EnvironmentId; source: UsageSource }>();
   const accountAccumulator = new Map<string, { costUsd: number; totalTokens: number }>();
+  // # DPALUCH - changes END [account-usage]
   const contributingEnvironments: EnvironmentId[] = [];
 
   for (const environment of current) {
@@ -472,6 +482,7 @@ export function mergeUsage(
       sourceKey,
     );
     if (buckets.length > 0) contributingEnvironments.push(environment.environmentId);
+    // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
     for (const source of environment.summary.sources) {
       const key = sourceKey(source.fingerprint);
       if (ownerScanByFingerprint.get(key)?.source === source) {
@@ -479,6 +490,7 @@ export function mergeUsage(
       }
     }
     const accountSourceOf = sourceOfBucket(environment.summary);
+    // # DPALUCH - changes END [account-usage]
 
     for (const [providerKind, providerSessions] of sessionsByProvider) {
       sessions += providerSessions;
@@ -527,6 +539,7 @@ export function mergeUsage(
       provider.records += bucket.records;
       providerAccumulator.set(bucket.provider, provider);
 
+      // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
       const accountSource = accountSourceOf(bucket);
       if (accountSource !== undefined) {
         const accountKey = sourceKey(accountSource.fingerprint);
@@ -535,6 +548,7 @@ export function mergeUsage(
         account.totalTokens += tokens;
         accountAccumulator.set(accountKey, account);
       }
+      // # DPALUCH - changes END [account-usage]
 
       const modelKey = `${bucket.provider} ${bucket.model}`;
       const model = modelAccumulator.get(modelKey) ?? {
@@ -607,6 +621,7 @@ export function mergeUsage(
 
   const totalTokens = uncachedInputTokens + cachedInputTokens + cacheCreationTokens + outputTokens;
 
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   const accounts = [...accountSources]
     .map(
       ([key, { environmentId, source }]): UsageAccountTotals & { provider: UsageProviderKind } => {
@@ -625,6 +640,7 @@ export function mergeUsage(
     )
     .filter((account) => account.totalTokens > 0 || account.costUsd > 0 || account.sessions > 0)
     .sort((a, b) => b.costUsd - a.costUsd || b.totalTokens - a.totalTokens);
+  // # DPALUCH - changes END [account-usage]
 
   const providers: ProviderTotals[] = [...providerAccumulator.entries()]
     .map(([provider, totals]) => ({
@@ -635,9 +651,11 @@ export function mergeUsage(
       sessions: totals.sessions,
       costShare: costUsd === 0 ? 0 : totals.costUsd / costUsd,
       tokenShare: totalTokens === 0 ? 0 : totals.totalTokens / totalTokens,
+      // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
       accounts: accounts.flatMap(({ provider: accountProvider, ...account }) =>
         accountProvider === provider ? [account] : [],
       ),
+      // # DPALUCH - changes END [account-usage]
     }))
     .sort((a, b) => b.costUsd - a.costUsd);
 

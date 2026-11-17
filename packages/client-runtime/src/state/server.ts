@@ -1541,12 +1541,14 @@ export function createServerEnvironmentAtoms<R, E>(
         );
       },
     }),
+    // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
     priceUsage: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:server:price-usage",
       tag: WS_METHODS.serverPriceUsage,
       staleTimeMs: 60_000,
       refreshTrigger: ({ environmentId }) => usageScanSettingsAtom(environmentId),
     }),
+    // # DPALUCH - changes END [price-usage]
     resourceTelemetry: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:server:resource-telemetry",
       tag: WS_METHODS.subscribeResourceTelemetry,

@@ -1,4 +1,5 @@
 #!/bin/bash
+# DPALUCH - changes BEGIN [sync-script]: Keep this branch on the newest upstream nightly and the listed upstream PRs.
 # Keeps the dpaluch-nightly branch on top of the upstream T3 Code nightly.
 # It merges the newest upstream nightly tag and the newest head of every PR in
 # dpaluch/prs.txt. With --push it also pushes the branch and tags a new HEAD
@@ -115,3 +116,4 @@ new_tag="${nightly_tag}${TAG_SUFFIX}.$((${last:-0} + 1))"
 git tag -a "$new_tag" -m "$tag_message"
 git push --quiet origin "refs/tags/$new_tag"
 log "Tagged $new_tag"
+# DPALUCH - changes END [sync-script]

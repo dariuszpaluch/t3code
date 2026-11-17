@@ -115,8 +115,10 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.serverRetryResourceTelemetry]: AuthDiagnosticsReadScope,
   [WS_METHODS.serverGetUsageSummary]: AuthDiagnosticsReadScope,
   [WS_METHODS.serverRefreshUsageRates]: AuthDiagnosticsReadScope,
+  // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
   // Thread Insights prices token totals already visible on the projection.
   [WS_METHODS.serverPriceUsage]: AuthOrchestrationReadScope,
+  // # DPALUCH - changes END [price-usage]
   [WS_METHODS.serverSignalProcess]: AuthEnvironmentMaintainScope,
   [WS_METHODS.serverReportClientActivity]: AuthOrchestrationReadScope,
   [WS_METHODS.scheduledTasksSubscribe]: AuthOrchestrationReadScope,

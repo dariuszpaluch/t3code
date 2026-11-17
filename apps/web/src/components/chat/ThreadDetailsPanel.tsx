@@ -28,8 +28,10 @@ import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
 import { ThreadServersPanel } from "./ThreadServersPanel";
 import {
   ThreadDetailsContext,
+  // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
   ThreadDetailsSession,
   type ThreadDetailsSessionInput,
+  // # DPALUCH - changes END [session-cost-cache]
   ThreadDetailsUsage,
   type ThreadDetailsUsageInput,
 } from "./ThreadDetailsUsage";
@@ -93,7 +95,9 @@ interface ThreadDetailsPanelProps extends Pick<
   ) => Promise<ProjectScriptActionResult>;
   onDeleteProjectScript: (scriptId: string) => Promise<ProjectScriptActionResult>;
   usage: ThreadDetailsUsageInput;
+  // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
   session: ThreadDetailsSessionInput;
+  // # DPALUCH - changes END [session-cost-cache]
 }
 
 export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
@@ -293,7 +297,9 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
                 <ThreadDetailsContext usage={props.usage.contextWindow} />
               ) : null}
 
+              {/* # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card. */}
               {visible.session ? <ThreadDetailsSession {...props.session} /> : null}
+              {/* # DPALUCH - changes END [session-cost-cache] */}
 
               {/* Shown only when no section above has content, so an emptied card can be refilled. */}
               <div className="p-2 group-has-[>section>:last-child:not(:empty)]/details-items:hidden">

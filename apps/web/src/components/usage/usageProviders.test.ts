@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+/* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+// import { rankProvidersByMetric } from "./usageProviders";
+/* oxlint-enable t3code/no-low-value-comments */
 import { rankProvidersByMetric, setUsageAccountVisible } from "./usageProviders";
+// # DPALUCH - changes END [account-usage]
 
 describe("rankProvidersByMetric", () => {
   it("ranks by the selected metric, highest first", () => {
@@ -27,6 +32,7 @@ describe("rankProvidersByMetric", () => {
   });
 });
 
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
 describe("setUsageAccountVisible", () => {
   const keys = ["work", "personal"];
   const none = { hiddenProviders: [], hiddenSources: [] };
@@ -54,3 +60,4 @@ describe("setUsageAccountVisible", () => {
     });
   });
 });
+// # DPALUCH - changes END [account-usage]

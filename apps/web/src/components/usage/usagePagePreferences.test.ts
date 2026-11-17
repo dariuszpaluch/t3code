@@ -24,6 +24,16 @@ afterEach(() => {
 });
 
 describe("Usage page preferences", () => {
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
+  /* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+  // it("round-trips hidden providers and reads older saves without them", () => {
+  //   saveUsagePagePreferences({ metric: "cost", windowDays: 7, hiddenProviders: ["codex"] });
+  //   expect(readUsagePagePreferences().hiddenProviders).toEqual(["codex"]);
+  //
+  //   values.set(key, '{"metric":"tokens","windowDays":30}');
+  //   expect(readUsagePagePreferences()).toEqual({ metric: "tokens", windowDays: 30 });
+  // });
+  /* oxlint-enable t3code/no-low-value-comments */
   it("round-trips hidden providers and accounts and reads older saves without them", () => {
     saveUsagePagePreferences({
       metric: "cost",
@@ -39,6 +49,7 @@ describe("Usage page preferences", () => {
     values.set(key, '{"metric":"tokens","windowDays":30}');
     expect(readUsagePagePreferences()).toEqual({ metric: "tokens", windowDays: 30 });
   });
+  // # DPALUCH - changes END [account-usage]
 
   // regression: #10189 an invalid saved usage selection was never replaced
   it.each([

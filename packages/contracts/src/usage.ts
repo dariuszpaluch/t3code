@@ -1,7 +1,9 @@
 import * as Schema from "effect/Schema";
 
 import { ForwardCompatibleArray, NonNegativeInt, TrimmedNonEmptyString } from "./baseSchemas.ts";
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
 import { ProviderInstanceId } from "./providerInstance.ts";
+// # DPALUCH - changes END [account-usage]
 
 /** Bump for incompatible UsageSummary changes; skipped unknown array variants need no bump. */
 export const USAGE_CONTRACT_VERSION = 6 as const;
@@ -100,11 +102,13 @@ export const UsageSource = Schema.Struct({
   malformedRecords: NonNegativeInt,
   /** Total this count; bucket counts double-count sessions spanning days or models. */
   distinctSessions: NonNegativeInt,
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   /**
    * Provider instances whose history this source holds. Several instances
    * share one source when they point at the same home directory.
    */
   providerInstanceIds: Schema.optionalKey(Schema.Array(ProviderInstanceId)),
+  // # DPALUCH - changes END [account-usage]
   message: Schema.NullOr(TrimmedNonEmptyString),
   /** Cached response during refresh; repeat with awaitRefresh for fresh data. */
   refreshing: Schema.optionalKey(Schema.Literal(true)),
@@ -179,6 +183,7 @@ export class UsageReadError extends Schema.TaggedError<UsageReadError>()("UsageR
   }
 }
 
+// # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
 /** Prices live turn totals with the same LiteLLM table and overrides as Usage. */
 export const UsagePriceItemInput = Schema.Struct({
   id: TrimmedNonEmptyString,
@@ -204,3 +209,4 @@ export const UsagePriceResult = Schema.Struct({
   pricing: UsagePricing,
 });
 export type UsagePriceResult = typeof UsagePriceResult.Type;
+// # DPALUCH - changes END [price-usage]

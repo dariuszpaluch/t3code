@@ -1,3 +1,4 @@
+// # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name.
 import { describe, expect, it } from "vite-plus/test";
 
 import { isInsideFolder, jiraKeyOf, workJiraTicket } from "./workJiraTicket";
@@ -51,3 +52,4 @@ describe("workJiraTicket", () => {
     expect(workJiraTicket({ ...base, branch: "GAMG-1", workFolder: "" })).toBeNull();
   });
 });
+// # DPALUCH - changes END [work-jira-link]

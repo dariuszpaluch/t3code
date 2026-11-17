@@ -48,7 +48,12 @@ import { RightPanelSurfaceContent } from "./chat/RightPanelSurfaceContent";
 import { usePendingThreadRequests } from "./chat/usePendingThreadRequests";
 import { isScratchProject } from "@t3tools/client-runtime/state/projects";
 import { visibleThreadPullRequests } from "@t3tools/shared/threadPullRequests";
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
+/* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+// import type { UsageLimitSourceSnapshots } from "@t3tools/contracts";
+/* oxlint-enable t3code/no-low-value-comments */
 import type { OrchestrationV2ProviderTurn, UsageLimitSourceSnapshots } from "@t3tools/contracts";
+// # DPALUCH - changes END [session-cost-cache]
 import { feedbackBannerItem } from "./chat/ComposerFeedback";
 import { freshSessionBannerItem } from "./chat/ComposerFreshSession";
 import { armFreshSession, disarmFreshSession, useFreshSessionArmed } from "./chat/freshSessionArms";
@@ -199,7 +204,9 @@ import { GuestPendingMessages } from "./chat/GuestShareControls";
 import { useDeviceState } from "~/state/device";
 import { BranchToolbar, type BranchToolbarHandle } from "./BranchToolbar";
 import { ComposerContextPermissions } from "./ComposerContextPermissions";
+// # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name.
 import { WorkJiraTicketLink } from "./chat/WorkJiraTicketLink";
+// # DPALUCH - changes END [work-jira-link]
 import { makeWorkspaceFileDropHandlers } from "./chat/workspaceFileDrop";
 import { isEditableFocused } from "../lib/editableFocus";
 import { DEFAULT_RESOLVED_KEYBINDINGS } from "@t3tools/shared/keybindings";
@@ -403,7 +410,9 @@ import {
 const EMPTY_PROVIDERS: ServerProvider[] = [];
 const EMPTY_PROVIDER_MODELS: ServerProvider["models"] = [];
 const EMPTY_USAGE_LIMIT_SOURCES: UsageLimitSourceSnapshots = [];
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 const EMPTY_PROVIDER_TURNS: ReadonlyArray<OrchestrationV2ProviderTurn> = [];
+// # DPALUCH - changes END [session-cost-cache]
 import type { CodexArtifactTemplate } from "@t3tools/shared/codexArtifactTemplates";
 
 const EMPTY_FEEDBACK_SUBMISSIONS: ReadonlyArray<CodexFeedbackSubmission> = [];
@@ -3833,9 +3842,11 @@ export default function ChatView(props: ChatViewProps) {
                                       : undefined
                                   }
                                   availableEnvironments={logicalProjectEnvironments}
+                                  // # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name.
                                   beforeBranch={
                                     <WorkJiraTicketLink branch={activeThreadBranch} cwd={gitCwd} />
                                   }
+                                  // # DPALUCH - changes END [work-jira-link]
                                   {...(isServerThread
                                     ? {}
                                     : {
@@ -3964,12 +3975,14 @@ export default function ChatView(props: ChatViewProps) {
                     sources: serverConfig?.usageLimitSources ?? EMPTY_USAGE_LIMIT_SOURCES,
                     contextWindow: activeContextWindow,
                   }}
+                  // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
                   session={{
                     environmentId: activeThread.environmentId,
                     providerTurns: serverProjection?.providerTurns ?? EMPTY_PROVIDER_TURNS,
                     fallbackModel: activeThread.modelSelection.model,
                     liveUsage: activeThreadLiveTokenUsage,
                   }}
+                  // # DPALUCH - changes END [session-cost-cache]
                 />
 
                 <PullRequestThreadDialogHost

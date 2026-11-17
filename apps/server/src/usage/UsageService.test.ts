@@ -1867,6 +1867,7 @@ describe("UsageService", () => {
     }),
   );
 
+  // # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
   it.effect("names the provider instances that own each transcript home", () =>
     Effect.gen(function* () {
       const { home, settings, transcript } = yield* setup;
@@ -1920,6 +1921,7 @@ describe("UsageService", () => {
       ]);
     }),
   );
+  // # DPALUCH - changes END [account-usage]
 
   it.effect.each([
     { label: "default", retention: undefined, cutoff: CURSOR_NOW - 92 * 24 * HOUR_MS },
@@ -3098,6 +3100,7 @@ describe("UsageService", () => {
     }),
   );
 
+  // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
   it.effect("prices turn totals with overrides and aliases for Insights", () =>
     Effect.gen(function* () {
       const { settings, home } = yield* setup;
@@ -3149,6 +3152,7 @@ describe("UsageService", () => {
       );
     }),
   );
+  // # DPALUCH - changes END [price-usage]
 
   it.effect(
     "retains Codex reconciliation and partial coverage through persisted restart, append and repair",

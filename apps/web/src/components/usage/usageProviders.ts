@@ -81,6 +81,7 @@ export function rankProvidersByMetric(
   return providers.toSorted((left, right) => value(right) - value(left));
 }
 
+// # DPALUCH - changes BEGIN [account-usage]: Split Usage cost and tokens by provider account.
 export interface UsageVisibility {
   readonly hiddenProviders: readonly UsageProviderKind[];
   readonly hiddenSources: readonly string[];
@@ -110,3 +111,4 @@ export function setUsageAccountVisible(
     ? { hiddenProviders: [...otherProviders, provider], hiddenSources: otherSources }
     : { hiddenProviders: otherProviders, hiddenSources: [...otherSources, ...nextHidden] };
 }
+// # DPALUCH - changes END [account-usage]

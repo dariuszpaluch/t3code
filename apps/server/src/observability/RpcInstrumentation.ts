@@ -95,7 +95,9 @@ const RPC_AGGREGATES = {
   [WS_METHODS.serverPrepareTriage]: "server",
   [WS_METHODS.serverGetUsageSummary]: "server",
   [WS_METHODS.serverRefreshUsageRates]: "server",
+  // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
   [WS_METHODS.serverPriceUsage]: "server",
+  // # DPALUCH - changes END [price-usage]
   [WS_METHODS.serverSignalProcess]: "server",
   [WS_METHODS.serverReportClientActivity]: "server",
   [WS_METHODS.scheduledTasksSubscribe]: "scheduledTasks",

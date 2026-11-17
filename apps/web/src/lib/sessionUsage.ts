@@ -1,3 +1,4 @@
+// # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 import type {
   OrchestrationV2ProviderTurn,
   UsagePriceItemInput,
@@ -81,3 +82,4 @@ export function cacheHitPercent(usage: Pick<SessionUsage, "inputTokens" | "cache
     ? Math.round((Math.min(usage.cacheReadTokens, usage.inputTokens) / usage.inputTokens) * 100)
     : null;
 }
+// # DPALUCH - changes END [session-cost-cache]

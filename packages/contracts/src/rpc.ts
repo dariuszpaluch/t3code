@@ -380,6 +380,10 @@ import {
   ProviderConsumeResetCreditInput,
   ProviderConsumeResetCreditResult,
 } from "./providerUsageLimits.ts";
+// # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
+/* oxlint-disable t3code/no-low-value-comments -- Fork policy keeps the previous implementation here. */
+// import { UsagePricing, UsageReadError, UsageSummary, UsageSummaryInput } from "./usage.ts";
+/* oxlint-enable t3code/no-low-value-comments */
 import {
   UsagePriceInput,
   UsagePriceResult,
@@ -388,6 +392,7 @@ import {
   UsageSummary,
   UsageSummaryInput,
 } from "./usage.ts";
+// # DPALUCH - changes END [price-usage]
 import {
   StorageCleanupReport,
   DatabaseReclaimError,
@@ -582,7 +587,9 @@ export const WS_METHODS = {
   serverReportClientActivity: "server.reportClientActivity",
   serverGetUsageSummary: "server.getUsageSummary",
   serverRefreshUsageRates: "server.refreshUsageRates",
+  // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
   serverPriceUsage: "server.priceUsage",
+  // # DPALUCH - changes END [price-usage]
 
   scheduledTasksSubscribe: "scheduledTasks.subscribe",
   scheduledTasksUpsert: "scheduledTasks.upsert",
@@ -1081,11 +1088,13 @@ const WsServerRefreshUsageRatesRpc = Rpc.make(WS_METHODS.serverRefreshUsageRates
   error: EnvironmentAuthorizationError,
 });
 
+// # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
 const WsServerPriceUsageRpc = Rpc.make(WS_METHODS.serverPriceUsage, {
   payload: UsagePriceInput,
   success: UsagePriceResult,
   error: Schema.Union([EnvironmentAuthorizationError, UsageReadError]),
 });
+// # DPALUCH - changes END [price-usage]
 
 const WsServerSignalProcessRpc = Rpc.make(WS_METHODS.serverSignalProcess, {
   payload: ServerSignalProcessInput,
@@ -2333,7 +2342,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerPrepareTriageRpc,
   WsServerGetUsageSummaryRpc,
   WsServerRefreshUsageRatesRpc,
+  // # DPALUCH - changes BEGIN [price-usage]: Price thread token totals on the server with the Usage rates. Code is copied from upstream PR 32261 - drop this change after that PR is merged.
   WsServerPriceUsageRpc,
+  // # DPALUCH - changes END [price-usage]
   WsServerSignalProcessRpc,
   WsScheduledTasksSubscribeRpc,
   WsScheduledTasksUpsertRpc,
