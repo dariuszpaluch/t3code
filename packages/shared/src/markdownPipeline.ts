@@ -148,6 +148,7 @@ const CHAT_MARKDOWN_SANITIZE_SCHEMA = {
     href: [
       ...(defaultSchema.protocols?.href ?? []),
       "file",
+      "obsidian", // ChatMarkdown validates the action and parameters before navigation.
       "t3-citation",
       "t3-context",
       THREAD_LINK_PROTOCOL,

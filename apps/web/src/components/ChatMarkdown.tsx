@@ -1,3 +1,4 @@
+import { parseObsidianOpenUrl } from "@t3tools/shared/obsidianUri";
 import { MarkdownFindContext, useFindRevealRef } from "./chat/markdownFindContext";
 import {
   buildFileLinkParentSuffixByPath,
@@ -2394,7 +2395,11 @@ function useChatMarkdownState({
     ];
     return buildFileLinkParentSuffixByPath(filePaths);
   }, [inlineCodeFileLinkMetaByText, markdownFileLinkMetaByHref]);
-  const markdownUrlTransform = useCallback((href: string) => {
+  const markdownUrlTransform = useCallback((href: string, key: string) => {
+    if (key === "href") {
+      const obsidianUrl = parseObsidianOpenUrl(href);
+      if (obsidianUrl !== null) return obsidianUrl;
+    }
     if (parseAssistantCitationHref(href)) return href;
     if (parseComposerContextHref(href)) return href;
     if (parseThreadLinkHref(href)) return href;

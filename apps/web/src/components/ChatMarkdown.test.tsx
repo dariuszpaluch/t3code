@@ -1372,3 +1372,46 @@ describe("ChatMarkdown in-page links", () => {
     },
   );
 });
+
+it.each([true, false])(
+  "preserves Obsidian note links without allowing commands or image launches, raw HTML %s",
+  async (parseRawHtml) => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const href = "obsidian://open?vault=Notes&file=Research%2FShared%20approaches";
+    try {
+      await act(async () => {
+        root.render(
+          <ChatMarkdown
+            cwd="/tmp/project"
+            text={`[Open note](${href})\n\n[Create note](obsidian://new?vault=Notes&file=Note)\n\n![Not a launcher](${href})\n\n<a href="${href}">HTML note</a>`}
+            parseRawHtml={parseRawHtml}
+          />,
+        );
+      });
+      const links = [...container.querySelectorAll("a")];
+      const note = links.find((link) => link.textContent === "Open note");
+      expect(note).toBeDefined();
+      let clickedHref: string | undefined;
+      note!.addEventListener("click", (event) => {
+        event.preventDefault();
+        clickedHref = note!.href;
+      });
+      note!.click();
+      expect(clickedHref).toBe(href);
+      expect(links.find((link) => link.textContent === "Create note")?.href ?? "").not.toContain(
+        "obsidian:",
+      );
+      expect(container.querySelector("img")?.getAttribute("src") ?? "").not.toContain("obsidian:");
+      if (parseRawHtml) {
+        expect(links.find((link) => link.textContent === "HTML note")?.href).toBe(href);
+      }
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+      vi.unstubAllGlobals();
+    }
+  },
+);

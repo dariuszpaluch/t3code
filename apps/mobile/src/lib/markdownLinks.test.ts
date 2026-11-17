@@ -14,6 +14,17 @@ describe("resolveMarkdownLinkIcon", () => {
 });
 
 describe("resolveMarkdownLinkPresentation", () => {
+  it("keeps note-opening URLs and rejects other Obsidian commands", () => {
+    const href = "obsidian://open?vault=Notes&file=Research%2FShared%20approaches";
+    expect(resolveMarkdownLinkPresentation(href)).toEqual({ kind: "link", href });
+    for (const blocked of [
+      "obsidian://new?vault=Notes&file=Note&content=replace",
+      "obsidian://open?vault=Notes&file=Note&overwrite=true",
+    ]) {
+      expect(resolveMarkdownLinkPresentation(blocked)).toEqual({ kind: "link", href: null });
+    }
+  });
+
   it("keeps thread-link hrefs for in-app navigation", () => {
     const href = "t3-thread://v1/thread-1";
     expect(resolveMarkdownLinkPresentation(href)).toEqual({ kind: "link", href });

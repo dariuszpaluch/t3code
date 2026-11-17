@@ -18,6 +18,21 @@ afterEach(() => {
 });
 
 describe("tryOpenExternalUrl", () => {
+  it("opens Obsidian notes but never sends writing commands to the OS", async () => {
+    openURL.mockResolvedValue(undefined);
+    const href = "obsidian://open?vault=Notes&file=Research%2FShared%20approaches";
+    await expect(tryOpenExternalUrl(href, "markdown-link")).resolves.toBe(true);
+    for (const blocked of [
+      "obsidian://new?vault=Notes&file=Note&content=replace",
+      "  obsidian://new?vault=Notes&file=Note",
+      "obsi\tdian://new?vault=Notes&file=Note",
+      "obsidian://open?vault=Notes&file=Note&overwrite=true",
+    ]) {
+      await expect(tryOpenExternalUrl(blocked, "markdown-link")).resolves.toBe(false);
+    }
+    expect(openURL).toHaveBeenCalledExactlyOnceWith(href);
+  });
+
   it("opens supported URLs", async () => {
     openURL.mockResolvedValue(undefined);
 

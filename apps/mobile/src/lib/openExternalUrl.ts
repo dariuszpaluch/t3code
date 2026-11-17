@@ -1,3 +1,4 @@
+import { parseObsidianOpenUrl } from "@t3tools/shared/obsidianUri";
 import * as Schema from "effect/Schema";
 import { Linking } from "react-native";
 
@@ -41,6 +42,9 @@ function externalUrlMetadata(url: string): { readonly scheme: string; readonly h
 }
 
 export async function tryOpenExternalUrl(url: string, target: ExternalUrlTarget): Promise<boolean> {
+  if (externalUrlMetadata(url).scheme === "obsidian" && parseObsidianOpenUrl(url) === null) {
+    return false;
+  }
   try {
     await Linking.openURL(url);
     return true;
