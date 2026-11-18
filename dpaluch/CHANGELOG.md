@@ -18,9 +18,9 @@ Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstr
 - **Change:** merge upstream `v0.1.11-nightly.20261118.4890` (`8cf97b5f06`) into `dpaluch-nightly`.
 - **Why:** update the app while keeping Obsidian links, machine filtering, session cost and per-account usage.
 - **Conflicts:** retain both sets of imports, machine scope rows and account visibility; keep upstream translated labels and pass its message resolver to the reset countdown.
-- **Files:** `apps/web/src/components/ChatMarkdown.tsx`, `apps/web/src/components/Sidebar.tsx`, `apps/web/src/components/chat/ThreadDetailsUsage.tsx`, `apps/web/src/components/chat/threadDetailsItems.ts`, `apps/web/src/components/usage/UsagePage.tsx`. Other changes come from upstream.
+- **Files:** `apps/web/src/components/ChatMarkdown.tsx`, `apps/web/src/components/Sidebar.tsx`, `apps/web/src/components/chat/ThreadDetailsUsage.tsx`, `apps/web/src/components/chat/threadDetailsItems.ts`, `apps/web/src/components/usage/UsagePage.tsx`. Also adapt `apps/web/src/components/chat/WorkJiraTicketLink.tsx` to the translation rule. Other changes come from upstream.
 - **Compatibility:** mark fork labels for translation and regenerate `apps/web/src/i18n/translations/*.json`. New keys use English fallback. JSON has no inline markers; existing entries are preserved except obsolete project-only filter labels. Update the existing `ThreadDetailsPanel.browser.test.tsx` fixture with empty session data.
-- **Validation:** 140 focused unit tests pass. Web typecheck passes after updating that fixture. Desktop packaging and broader checks are pending.
+- **Validation:** 140 focused unit tests and 42 Markdown/panel browser tests pass. Typechecks pass in all 42 affected packages. Format, focused lint, knip, unused-patch validation, React Compiler checks and i18n catalog checks pass. The broader suite passes 643 of 646 tests: two native-menu keyboard cases also fail with upstream components on macOS; the panel shortcut case fails in the suite but passes in isolation. The first desktop build passes packaging, payload validation and signature verification. The existing installer waits for the running app to close.
 
 <!-- # DPALUCH - changes END [nightly-20261118] -->
 
