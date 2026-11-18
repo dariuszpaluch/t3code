@@ -20,15 +20,15 @@ import { formatTokens, formatUsd } from "@t3tools/shared/usageFormat";
 // # DPALUCH - changes END [session-cost-cache]
 import {
   collectProviderUsageLimits,
-  formatDuration,
   type LimitPace,
-  limitsNotice,
   paceOf,
   remainingPercent,
 } from "@t3tools/shared/usageLimits";
 // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
 import { AsyncResult } from "effect/reactivity";
 // # DPALUCH - changes END [session-cost-cache]
+import { formatDuration, limitsNotice } from "@t3tools/shared/usageLimitsCopy";
+import { msg, useGT, useLocale, useMessages } from "gt-react";
 import type { ReactNode } from "react";
 
 import { usePrimarySettings } from "../../hooks/useSettings";
@@ -48,9 +48,9 @@ import { formatContextWindowCompactionMessage } from "./compaction.logic";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 
 const PACE_LABEL: Record<LimitPace, string> = {
-  ahead: "Ahead of pace",
-  on: "On pace",
-  under: "Under pace",
+  ahead: msg("Ahead of pace"),
+  on: msg("On pace"),
+  under: msg("Under pace"),
 };
 
 export interface ThreadDetailsUsageInput {
@@ -68,6 +68,8 @@ export function ThreadDetailsUsage({
   providers,
   sources,
 }: Omit<ThreadDetailsUsageInput, "contextWindow">) {
+  const gt = useGT();
+  const m = useMessages();
   const nowMinute = useNowMinute();
   const now = Date.parse(`${nowMinute}:00Z`);
   const report =
@@ -80,21 +82,21 @@ export function ThreadDetailsUsage({
     report?.accounts.find((entry) => entry.instanceId === providerInstanceId)?.limits ??
     providers.find((provider) => provider.instanceId === providerInstanceId)?.usageLimits;
   if (!limits) return null;
-  const notice = limitsNotice(limits);
+  const notice = limitsNotice(limits, m);
 
   return (
     <ThreadDetailsSection
       headingId="thread-details-usage-heading"
-      title="Usage limits"
+      title={gt("Usage limits")}
       showHeading={false}
     >
       <div className="grid grid-cols-[auto_minmax(3rem,1fr)_auto] gap-x-3 text-xs">
         {notice ? (
           <UsageRow
-            label="Limits"
+            label={gt("Limits", { $context: "usage limits row label" })}
             fill={null}
             tone={null}
-            value="Unavailable"
+            value={gt("Unavailable")}
             tooltip={<span className="text-foreground">{notice}</span>}
           />
         ) : (
@@ -117,16 +119,19 @@ export function ThreadDetailsContext({ usage }: { readonly usage: ContextWindowS
     maxTokens !== null && threshold !== null && threshold > 0 && threshold < maxTokens
       ? (threshold / maxTokens) * 100
       : null;
+  const gt = useGT();
+  const m = useMessages();
+  const locale = useLocale();
   const usedTokens = formatContextWindowTokens(usage.usedTokens);
   return (
     <ThreadDetailsSection
       headingId="thread-details-context-heading"
-      title="Context window"
+      title={gt("Context window")}
       showHeading={false}
     >
       <div className="grid grid-cols-[auto_minmax(3rem,1fr)_auto] gap-x-3 text-xs">
         <UsageRow
-          label="Context"
+          label={gt("Context", { $context: "context window row label" })}
           fill={used}
           tone={used === null ? null : used >= 90 ? "error" : used >= 80 ? "warning" : null}
           tick={tick}
@@ -136,21 +141,29 @@ export function ThreadDetailsContext({ usage }: { readonly usage: ContextWindowS
               ? `${usedTokens} / ${formatContextWindowTokens(maxTokens)}`
               : usedTokens
           }
-          ariaValue={used !== null ? `${used}% used` : `${usedTokens} tokens used`}
+          ariaValue={
+            used !== null
+              ? gt("{used}% used", { used })
+              : gt("{usedTokens} tokens used", { usedTokens })
+          }
           tooltip={
             <>
               <span className="text-foreground">
-                {used !== null ? `Context: ${used}% used` : `Context: ${usedTokens} tokens used`}
+                {used !== null
+                  ? gt("Context: {used}% used", { used })
+                  : gt("Context: {usedTokens} tokens used", { usedTokens })}
               </span>
               {maxTokens !== null ? (
                 <span className="text-muted-foreground">
-                  {usage.usedTokens.toLocaleString("en-US")} of {maxTokens.toLocaleString("en-US")}{" "}
-                  tokens
+                  {gt("{used} of {max} tokens", {
+                    used: usage.usedTokens.toLocaleString(locale),
+                    max: maxTokens.toLocaleString(locale),
+                  })}
                 </span>
               ) : null}
               {threshold !== null && threshold > 0 ? (
                 <span className="text-muted-foreground">
-                  {formatContextWindowCompactionMessage(threshold)}
+                  {formatContextWindowCompactionMessage(threshold, m)}
                 </span>
               ) : null}
             </>
@@ -170,6 +183,151 @@ export interface ThreadDetailsSessionInput {
   readonly liveUsage: OrchestrationV2ProviderTurnTokenUsage | null;
 }
 
+// # DPALUCH - changes BEGIN [nightly-20261118]: Adapt session copy to upstream translation checks.
+/* oxlint-disable t3code/no-low-value-comments */
+// /** Session cost and prompt cache of the thread, like a terminal status line. */
+// export function ThreadDetailsSession({
+//   environmentId,
+//   providerTurns,
+//   fallbackModel,
+//   liveUsage,
+// }: ThreadDetailsSessionInput) {
+//   const nowMinute = useNowMinute();
+//   const now = Date.parse(`${nowMinute}:00Z`);
+//   const usage = summarizeSessionUsage(providerTurns, fallbackModel);
+//   if (usage.priceItems.length === 0 && usage.inputTokens === 0) return null;
+//
+//   const hit = cacheHitPercent(usage);
+//   const expiresAt = cacheExpiresAt(liveUsage);
+//   const minutesLeft = expiresAt === null ? null : Math.ceil((expiresAt - now) / 60_000);
+//   const warm = minutesLeft !== null && minutesLeft > 0;
+//   // A cold cache makes the next message write the whole context to the cache again.
+//   const rewrite = liveUsage ? formatTokens(liveUsage.usedTokens) : null;
+//   const expiry =
+//     minutesLeft === null
+//       ? ""
+//       : warm
+//         ? ` · ${minutesLeft}m`
+//         : ` · cold${rewrite ? ` ${rewrite}` : ""}`;
+//
+//   return (
+//     <ThreadDetailsSection
+//       headingId="thread-details-session-heading"
+//       title="Session"
+//       showHeading={false}
+//     >
+//       <div className="grid grid-cols-[auto_minmax(3rem,1fr)_auto] gap-x-3 text-xs">
+//         {usage.priceItems.length > 0 ? (
+//           <SessionCostRow
+//             environmentId={environmentId}
+//             items={usage.priceItems}
+//             unpricedTurnCount={usage.unpricedTurnCount}
+//           />
+//         ) : null}
+//         <UsageRow
+//           label="Cache"
+//           fill={hit}
+//           tone={null}
+//           muted
+//           value={`${hit ?? 0}%${expiry}`}
+//           ariaValue={`${hit ?? 0}% of input read from cache`}
+//           tooltip={
+//             <>
+//               <span className="text-foreground">Cache: {hit ?? 0}% of input read from cache</span>
+//               <span className="text-muted-foreground">
+//                 Read {formatTokens(usage.cacheReadTokens)} · written{" "}
+//                 {formatTokens(usage.cacheWriteTokens)} · input {formatTokens(usage.inputTokens)}
+//               </span>
+//               {minutesLeft !== null ? (
+//                 <span className="text-muted-foreground">
+//                   {warm
+//                     ? `Expires in about ${minutesLeft}m if the thread stays idle`
+//                     : `Expired: the next message writes ${rewrite ?? "the context"} to the cache again`}
+//                 </span>
+//               ) : null}
+//             </>
+//           }
+//         />
+//       </div>
+//     </ThreadDetailsSection>
+//   );
+// }
+//
+// /** The provider's expiry time, or the last update plus the cache lifetime. Null when unknown. */
+// function cacheExpiresAt(liveUsage: OrchestrationV2ProviderTurnTokenUsage | null): number | null {
+//   if (liveUsage === null) return null;
+//   const reported = liveUsage.promptCacheExpiresAt
+//     ? Date.parse(liveUsage.promptCacheExpiresAt)
+//     : NaN;
+//   if (Number.isFinite(reported)) return reported;
+//   const updatedAt = Date.parse(liveUsage.updatedAt);
+//   return liveUsage.promptCacheTtlMs !== undefined && Number.isFinite(updatedAt)
+//     ? updatedAt + liveUsage.promptCacheTtlMs
+//     : null;
+// }
+//
+// function SessionCostRow({
+//   environmentId,
+//   items,
+//   unpricedTurnCount,
+// }: {
+//   readonly environmentId: EnvironmentId;
+//   readonly items: readonly UsagePriceItemInput[];
+//   readonly unpricedTurnCount: number;
+// }) {
+//   const result = useAtomValue(serverEnvironment.priceUsage({ environmentId, input: { items } }));
+//   // Servers without server.priceUsage (for example the official nightly) answer with an error.
+//   if (result._tag === "Failure") {
+//     return (
+//       <UsageRow
+//         label="Cost"
+//         fill={null}
+//         tone={null}
+//         value="Unavailable"
+//         tooltip={<span className="text-foreground">This server cannot price usage</span>}
+//       />
+//     );
+//   }
+//   const priced = AsyncResult.getOrElse(result, () => null);
+//   if (priced === null) {
+//     return <UsageRow label="Cost" fill={null} tone={null} value="…" tooltip="Pricing usage" />;
+//   }
+//
+//   const total = priced.items.reduce((sum, item) => sum + item.costUsd, 0);
+//   const unpricedModels = priced.items.filter((item) => item.costSource === "unpriced");
+//   const partial = unpricedModels.length > 0 || unpricedTurnCount > 0;
+//   const allUnpriced = unpricedModels.length === priced.items.length;
+//   return (
+//     <UsageRow
+//       label="Cost"
+//       fill={null}
+//       tone={null}
+//       value={allUnpriced ? "Unpriced" : `${formatUsd(total)}${partial ? "+" : ""} est.`}
+//       ariaValue={allUnpriced ? "Unpriced" : `about ${formatUsd(total)} at API prices`}
+//       tooltip={
+//         <>
+//           <span className="text-foreground">
+//             API price of this thread: about {formatUsd(total)}
+//           </span>
+//           <span className="text-muted-foreground">
+//             Main agent only, priced with the Usage rates
+//           </span>
+//           {priced.items.map((item) => (
+//             <span key={item.id} className="text-muted-foreground">
+//               {item.id}: {item.costSource === "unpriced" ? "no price" : formatUsd(item.costUsd)}
+//             </span>
+//           ))}
+//           {unpricedTurnCount > 0 ? (
+//             <span className="text-muted-foreground">
+//               {unpricedTurnCount} turn(s) with several or unknown models are not included
+//             </span>
+//           ) : null}
+//         </>
+//       }
+//     />
+//   );
+// }
+/* oxlint-enable t3code/no-low-value-comments */
 /** Session cost and prompt cache of the thread, like a terminal status line. */
 export function ThreadDetailsSession({
   environmentId,
@@ -177,6 +335,7 @@ export function ThreadDetailsSession({
   fallbackModel,
   liveUsage,
 }: ThreadDetailsSessionInput) {
+  const gt = useGT();
   const nowMinute = useNowMinute();
   const now = Date.parse(`${nowMinute}:00Z`);
   const usage = summarizeSessionUsage(providerTurns, fallbackModel);
@@ -198,7 +357,7 @@ export function ThreadDetailsSession({
   return (
     <ThreadDetailsSection
       headingId="thread-details-session-heading"
-      title="Session"
+      title={gt("Session")}
       showHeading={false}
     >
       <div className="grid grid-cols-[auto_minmax(3rem,1fr)_auto] gap-x-3 text-xs">
@@ -210,24 +369,36 @@ export function ThreadDetailsSession({
           />
         ) : null}
         <UsageRow
-          label="Cache"
+          label={gt("Cache")}
           fill={hit}
           tone={null}
           muted
           value={`${hit ?? 0}%${expiry}`}
-          ariaValue={`${hit ?? 0}% of input read from cache`}
+          ariaValue={gt("{hit}% of input read from cache", { hit: hit ?? 0 })}
           tooltip={
             <>
-              <span className="text-foreground">Cache: {hit ?? 0}% of input read from cache</span>
+              <span className="text-foreground">
+                {gt("Cache: {hit}% of input read from cache", { hit: hit ?? 0 })}
+              </span>
               <span className="text-muted-foreground">
-                Read {formatTokens(usage.cacheReadTokens)} · written{" "}
-                {formatTokens(usage.cacheWriteTokens)} · input {formatTokens(usage.inputTokens)}
+                {gt("Read {read} · written {written} · input {input}", {
+                  read: formatTokens(usage.cacheReadTokens),
+                  written: formatTokens(usage.cacheWriteTokens),
+                  input: formatTokens(usage.inputTokens),
+                })}
               </span>
               {minutesLeft !== null ? (
                 <span className="text-muted-foreground">
                   {warm
-                    ? `Expires in about ${minutesLeft}m if the thread stays idle`
-                    : `Expired: the next message writes ${rewrite ?? "the context"} to the cache again`}
+                    ? gt(
+                        "Expires in about {count, plural, one {{count} minute} other {{count} minutes}} if the thread stays idle",
+                        { count: minutesLeft },
+                      )
+                    : rewrite
+                      ? gt("Expired: the next message writes {tokens} to the cache again", {
+                          tokens: rewrite,
+                        })
+                      : gt("Expired: the next message writes the context to the cache again")}
                 </span>
               ) : null}
             </>
@@ -260,22 +431,31 @@ function SessionCostRow({
   readonly items: readonly UsagePriceItemInput[];
   readonly unpricedTurnCount: number;
 }) {
+  const gt = useGT();
   const result = useAtomValue(serverEnvironment.priceUsage({ environmentId, input: { items } }));
   // Servers without server.priceUsage (for example the official nightly) answer with an error.
   if (result._tag === "Failure") {
     return (
       <UsageRow
-        label="Cost"
+        label={gt("Cost")}
         fill={null}
         tone={null}
-        value="Unavailable"
-        tooltip={<span className="text-foreground">This server cannot price usage</span>}
+        value={gt("Unavailable")}
+        tooltip={<span className="text-foreground">{gt("This server cannot price usage")}</span>}
       />
     );
   }
   const priced = AsyncResult.getOrElse(result, () => null);
   if (priced === null) {
-    return <UsageRow label="Cost" fill={null} tone={null} value="…" tooltip="Pricing usage" />;
+    return (
+      <UsageRow
+        label={gt("Cost")}
+        fill={null}
+        tone={null}
+        value="…"
+        tooltip={gt("Pricing usage")}
+      />
+    );
   }
 
   const total = priced.items.reduce((sum, item) => sum + item.costUsd, 0);
@@ -284,27 +464,36 @@ function SessionCostRow({
   const allUnpriced = unpricedModels.length === priced.items.length;
   return (
     <UsageRow
-      label="Cost"
+      label={gt("Cost")}
       fill={null}
       tone={null}
-      value={allUnpriced ? "Unpriced" : `${formatUsd(total)}${partial ? "+" : ""} est.`}
-      ariaValue={allUnpriced ? "Unpriced" : `about ${formatUsd(total)} at API prices`}
+      value={
+        allUnpriced
+          ? gt("Unpriced")
+          : gt("{cost} est.", { cost: `${formatUsd(total)}${partial ? "+" : ""}` })
+      }
+      ariaValue={
+        allUnpriced ? gt("Unpriced") : gt("about {cost} at API prices", { cost: formatUsd(total) })
+      }
       tooltip={
         <>
           <span className="text-foreground">
-            API price of this thread: about {formatUsd(total)}
+            {gt("API price of this thread: about {cost}", { cost: formatUsd(total) })}
           </span>
           <span className="text-muted-foreground">
-            Main agent only, priced with the Usage rates
+            {gt("Main agent only, priced with the Usage rates")}
           </span>
           {priced.items.map((item) => (
             <span key={item.id} className="text-muted-foreground">
-              {item.id}: {item.costSource === "unpriced" ? "no price" : formatUsd(item.costUsd)}
+              {item.id}: {item.costSource === "unpriced" ? gt("no price") : formatUsd(item.costUsd)}
             </span>
           ))}
           {unpricedTurnCount > 0 ? (
             <span className="text-muted-foreground">
-              {unpricedTurnCount} turn(s) with several or unknown models are not included
+              {gt(
+                "{count, plural, one {{count} turn with several or unknown models is not included} other {{count} turns with several or unknown models are not included}}",
+                { count: unpricedTurnCount },
+              )}
             </span>
           ) : null}
         </>
@@ -312,6 +501,7 @@ function SessionCostRow({
     />
   );
 }
+// # DPALUCH - changes END [nightly-20261118]
 // # DPALUCH - changes END [session-cost-cache]
 
 function LimitRow({
@@ -321,13 +511,16 @@ function LimitRow({
   readonly window: ServerProviderUsageWindow;
   readonly now: number;
 }) {
+  const gt = useGT();
+  const m = useMessages();
   const timestampFormat = usePrimarySettings((settings) => settings.timestampFormat);
   const left = remainingPercent(window);
   const pace = paceOf(window, now);
   const resetsAt = window.resetsAt ? Date.parse(window.resetsAt) : Number.NaN;
   // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
   // The reset time is in the row, so it can be read without the tooltip.
-  const resetsIn = resetsAt > now ? ` · ${formatDuration(resetsAt - now)}` : "";
+  // const resetsIn = resetsAt > now ? ` · ${formatDuration(resetsAt - now)}` : "";
+  const resetsIn = resetsAt > now ? ` · ${formatDuration(resetsAt - now, m)}` : "";
   // # DPALUCH - changes END [session-cost-cache]
   return (
     <UsageRow
@@ -338,19 +531,21 @@ function LimitRow({
       // value={`${left}%`}
       value={`${left}%${resetsIn}`}
       // # DPALUCH - changes END [session-cost-cache]
-      ariaValue={`${left}% left`}
+      ariaValue={gt("{left}% left", { left })}
       tooltip={
         <>
           <span className="text-foreground">
-            {window.label}: {left}% left
+            {gt("{label}: {left}% left", { label: window.label, left })}
           </span>
           {window.resetsAt && resetsAt > now ? (
             <span className="text-muted-foreground">
-              Resets in {formatDuration(resetsAt - now)} ·{" "}
-              {formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)}
+              {gt("Resets in {duration} · {time}", {
+                duration: formatDuration(resetsAt - now, m),
+                time: formatUpcomingTimestamp(window.resetsAt, timestampFormat, now, undefined, m),
+              })}
             </span>
           ) : null}
-          {pace ? <span className="text-muted-foreground">{PACE_LABEL[pace]}</span> : null}
+          {pace ? <span className="text-muted-foreground">{m(PACE_LABEL[pace])}</span> : null}
         </>
       }
     />
@@ -379,13 +574,14 @@ function UsageRow({
   readonly tooltip: ReactNode;
   readonly muted?: boolean;
 }) {
+  const gt = useGT();
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <div
             tabIndex={0}
-            aria-label={`${label}: ${ariaValue}`}
+            aria-label={gt("{label}: {value}", { label, value: ariaValue })}
             className="col-span-3 grid h-6 cursor-default grid-cols-subgrid items-center rounded-lg px-2.5 outline-none hover:bg-black/[0.035] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-popup-open:bg-black/[0.035] dark:hover:bg-white/[0.08] dark:data-popup-open:bg-white/[0.08]"
           />
         }

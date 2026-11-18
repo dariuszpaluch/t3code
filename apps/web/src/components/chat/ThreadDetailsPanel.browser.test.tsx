@@ -172,6 +172,14 @@ function Panel({ fixture }: { fixture: ReturnType<typeof setup> }) {
         onAddProjectScript={scriptResult}
         onUpdateProjectScript={scriptResult}
         onDeleteProjectScript={scriptResult}
+        // # DPALUCH - changes BEGIN [nightly-20261118]: Keep the existing panel fixture compatible with session details.
+        session={{
+          environmentId: threadRef.environmentId,
+          providerTurns: [],
+          fallbackModel: "",
+          liveUsage: null,
+        }}
+        // # DPALUCH - changes END [nightly-20261118]
         usage={{} as never}
       />
     </ChatCanvasContext>

@@ -8,6 +8,22 @@ Record new fork-specific changes here. Use a stable change ID shared with the so
 
 Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstream pull request code that this branch merges is not marked, except the copied `server.priceUsage` code.
 
+<!-- # DPALUCH - changes BEGIN [nightly-20261118]: Keep fork features on the latest upstream nightly. -->
+
+## 2026-11-18
+
+### nightly-20261118
+
+- **Area:** nightly integration.
+- **Change:** merge upstream `v0.1.11-nightly.20261118.4890` (`8cf97b5f06`) into `dpaluch-nightly`.
+- **Why:** update the app while keeping Obsidian links, machine filtering, session cost and per-account usage.
+- **Conflicts:** retain both sets of imports, machine scope rows and account visibility; keep upstream translated labels and pass its message resolver to the reset countdown.
+- **Files:** `apps/web/src/components/ChatMarkdown.tsx`, `apps/web/src/components/Sidebar.tsx`, `apps/web/src/components/chat/ThreadDetailsUsage.tsx`, `apps/web/src/components/chat/threadDetailsItems.ts`, `apps/web/src/components/usage/UsagePage.tsx`. Other changes come from upstream.
+- **Compatibility:** mark fork labels for translation and regenerate `apps/web/src/i18n/translations/*.json`. New keys use English fallback. JSON has no inline markers; existing entries are preserved except obsolete project-only filter labels. Update the existing `ThreadDetailsPanel.browser.test.tsx` fixture with empty session data.
+- **Validation:** 140 focused unit tests pass. Web typecheck passes after updating that fixture. Desktop packaging and broader checks are pending.
+
+<!-- # DPALUCH - changes END [nightly-20261118] -->
+
 ## 2026-11-17
 
 ### public-fork-note-links
