@@ -1,4 +1,7 @@
 // # DPALUCH - changes BEGIN [work-jira-link]: Link the Jira ticket of a work thread's branch next to the branch name.
+// # DPALUCH - changes BEGIN [nightly-20261118]: Translate the ticket link label with the new upstream UI.
+import { useGT } from "gt-react";
+// # DPALUCH - changes END [nightly-20261118]
 import { TicketIcon } from "lucide-react";
 
 import { readLocalApi } from "../../localApi";
@@ -13,6 +16,9 @@ export function WorkJiraTicketLink(props: {
   readonly branch: string | null;
   readonly cwd: string | null;
 }) {
+  // # DPALUCH - changes BEGIN [nightly-20261118]: Read the current UI language.
+  const gt = useGT();
+  // # DPALUCH - changes END [nightly-20261118]
   const ticket = workJiraTicket({
     ...props,
     workFolder: WORK_FOLDER,
@@ -23,7 +29,10 @@ export function WorkJiraTicketLink(props: {
   return (
     <a
       href={ticket.url}
-      aria-label={`Open ${ticket.key} in Jira`}
+      // # DPALUCH - changes BEGIN [nightly-20261118]: Preserve the ticket key in the translated label.
+      // aria-label={`Open ${ticket.key} in Jira`}
+      aria-label={gt("Open {ticket} in Jira", { ticket: ticket.key })}
+      // # DPALUCH - changes END [nightly-20261118]
       className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-accent hover:text-foreground"
       onClick={(event) => {
         // Jira needs the login of the system browser, not the in-app preview.
