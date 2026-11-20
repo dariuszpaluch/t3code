@@ -19,7 +19,7 @@ Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstr
 - **Why:** update the app while retaining the fork's Obsidian links, machine filtering, session costs and account usage.
 - **Conflict:** use upstream's `tick={timeLeft}` and percentage label. Remove the fork's duplicate reset countdown at the owner's request. Session cost and cache details remain.
 - **Files:** `apps/web/src/components/chat/ThreadDetailsUsage.tsx`. Other merged changes come from upstream.
-- **Validation:** 221 focused unit tests pass. Changed-file checks pass format, lint, knip, unused-patch validation, GraphQL generation, typechecks in 42 packages and React Compiler checks. The broader suite passes 663 of 666 tests; the same three macOS keyboard cases reported on 2026-11-18 still fail. i18n catalogs match source. Desktop packaging is pending.
+- **Validation:** 221 focused unit tests pass. Changed-file checks pass format, lint, knip, unused-patch validation, GraphQL generation, typechecks in 42 packages and React Compiler checks. The broader suite passes 663 of 666 tests; the same three macOS keyboard cases reported on 2026-11-18 still fail. i18n catalogs match source. macOS arm64 packaging, payload validation and signature verification pass. Build `v0.1.11-nightly.20261120.4979-dpaluch.1` is staged; the existing installer waits for the running app to close.
 
 <!-- # DPALUCH - changes END [nightly-20261120] -->
 
