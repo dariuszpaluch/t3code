@@ -1,3 +1,6 @@
+// # DPALUCH - changes BEGIN [claude-calendar-reset]: Express expected local calendar boundaries with Effect dates.
+import * as DateTime from "effect/DateTime";
+// # DPALUCH - changes END [claude-calendar-reset]
 import { describe, expect, it } from "vite-plus/test";
 
 import { claudeRateLimitEventToUpdate, claudeUsageResponseToLimits } from "./claudeUsageLimits.ts";
@@ -133,6 +136,15 @@ describe("claudeUsageResponseToLimits", () => {
     kind: "monthly",
     label: "Monthly spend",
     usedPercent: expect.closeTo(9.262, 10),
+    // # DPALUCH - changes BEGIN [claude-calendar-reset]: Verify the monthly marker uses calendar boundaries.
+    resetsAt: DateTime.formatIso(
+      DateTime.makeZonedUnsafe("2026-08-01T00:00:00Z", {
+        timeZone: DateTime.zoneMakeLocal(),
+        adjustForTimeZone: true,
+      }),
+    ),
+    windowDurationMins: 31 * 24 * 60,
+    // # DPALUCH - changes END [claude-calendar-reset]
   };
 
   it("maps the captured Enterprise budget precisely, preferring spend beside rolling windows", () => {
@@ -142,6 +154,30 @@ describe("claudeUsageResponseToLimits", () => {
         windows: [monthlyWindow],
       },
     );
+    // # DPALUCH - changes BEGIN [claude-calendar-reset]: Cover February, leap years and the year boundary.
+    for (const [checkedAt, reset, days] of [
+      ["2028-02-15T12:00:00Z", "2028-03-01T00:00:00Z", 29],
+      ["2027-02-15T12:00:00Z", "2027-03-01T00:00:00Z", 28],
+      ["2026-12-15T12:00:00Z", "2027-01-01T00:00:00Z", 31],
+    ] as const) {
+      const limits = claudeUsageResponseToLimits({
+        checkedAt,
+        response: enterpriseResponse,
+      }).limits;
+      expect(limits.windows).toEqual([
+        {
+          ...monthlyWindow,
+          resetsAt: DateTime.formatIso(
+            DateTime.makeZonedUnsafe(reset, {
+              timeZone: DateTime.zoneMakeLocal(),
+              adjustForTimeZone: true,
+            }),
+          ),
+          windowDurationMins: days * 24 * 60,
+        },
+      ]);
+    }
+    // # DPALUCH - changes END [claude-calendar-reset]
     const response = {
       ...enterpriseResponse,
       rate_limits: {

@@ -12,6 +12,18 @@ Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstr
 
 ## 2026-11-20
 
+<!-- # DPALUCH - changes BEGIN [claude-calendar-reset]: Give monthly Claude budgets a calendar reset for the pace marker. -->
+
+### claude-calendar-reset
+
+- **Area:** Claude monthly usage limits.
+- **Change:** assume monthly spend resets at midnight on the first day of the next month in the server's timezone. Derive the duration from actual month boundaries, including daylight-saving changes.
+- **Why:** show the existing time marker and reset tooltip for monthly budgets that have no reset metadata.
+- **Files:** `apps/server/src/provider/claudeUsageLimits.ts`, `apps/server/src/provider/claudeUsageLimits.test.ts`.
+- **Validation:** the existing budget test fails before the change and passes after it. All 139 adapter, proxy and shared-limit tests pass. Focused lint, server typecheck and `git diff --check` pass. A runtime check in `Europe/Warsaw` verifies March and October daylight-saving boundaries and a December 1 reset. This is a fork assumption, not a reset date reported by Claude.
+
+<!-- # DPALUCH - changes END [claude-calendar-reset] -->
+
 ### nightly-20261120
 
 - **Area:** nightly integration and desktop build.

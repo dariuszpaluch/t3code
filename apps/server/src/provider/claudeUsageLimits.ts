@@ -216,12 +216,28 @@ export function claudeUsageResponseToLimits(input: {
   const spendPercent = readSpendPercent(response.rate_limits);
   const extra = response.rate_limits.extra_usage;
   if (spendPercent !== undefined) {
+    // # DPALUCH - changes BEGIN [claude-calendar-reset]: Anchor the monthly pace marker to the server's calendar month.
+    /* oxlint-disable t3code/no-low-value-comments -- Preserve the upstream block required by fork policy. */
+    // windows.push({
+    // id: "monthly_spend",
+    // kind: "monthly",
+    // label: "Monthly spend",
+    // usedPercent: spendPercent,
+    // });
+    /* oxlint-enable t3code/no-low-value-comments */
+    const checkedDate = DateTime.makeZonedUnsafe(checkedAt, { timeZone: DateTime.zoneMakeLocal() });
+    const monthStart = DateTime.startOf(checkedDate, "month");
+    const resetsAt = DateTime.add(monthStart, { months: 1 });
     windows.push({
       id: "monthly_spend",
       kind: "monthly",
       label: "Monthly spend",
       usedPercent: spendPercent,
+      resetsAt: DateTime.formatIso(resetsAt),
+      windowDurationMins:
+        (DateTime.toEpochMillis(resetsAt) - DateTime.toEpochMillis(monthStart)) / 60_000,
     });
+    // # DPALUCH - changes END [claude-calendar-reset]
   }
   return {
     limits: {
