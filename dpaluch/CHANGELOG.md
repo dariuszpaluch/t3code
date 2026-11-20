@@ -8,6 +8,21 @@ Record new fork-specific changes here. Use a stable change ID shared with the so
 
 Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstream pull request code that this branch merges is not marked, except the copied `server.priceUsage` code.
 
+<!-- # DPALUCH - changes BEGIN [nightly-20261120]: Keep fork features on the latest upstream nightly. -->
+
+## 2026-11-20
+
+### nightly-20261120
+
+- **Area:** nightly integration and desktop build.
+- **Change:** merge upstream `v0.1.11-nightly.20261120.4979` (`59651c1761`) into `dpaluch-nightly`.
+- **Why:** update the app while retaining the fork's Obsidian links, machine filtering, session costs and account usage.
+- **Conflict:** retain upstream's `tick={timeLeft}` alongside the fork's visible reset countdown. The existing `session-cost-cache` markers still identify the custom value.
+- **Files:** `apps/web/src/components/chat/ThreadDetailsUsage.tsx`. Other merged changes come from upstream.
+- **Validation:** pending focused tests, changed-file checks and desktop packaging.
+
+<!-- # DPALUCH - changes END [nightly-20261120] -->
+
 <!-- # DPALUCH - changes BEGIN [nightly-20261118]: Keep fork features on the latest upstream nightly. -->
 
 ## 2026-11-18
