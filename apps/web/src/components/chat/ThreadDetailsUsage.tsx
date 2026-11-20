@@ -521,21 +521,16 @@ function LimitRow({
   const pace = paceOf(window, now);
   const timeLeft = paceRemainingPercent(window, now);
   const resetsAt = window.resetsAt ? Date.parse(window.resetsAt) : Number.NaN;
-  // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
-  // The reset time is in the row, so it can be read without the tooltip.
-  // const resetsIn = resetsAt > now ? ` · ${formatDuration(resetsAt - now)}` : "";
-  const resetsIn = resetsAt > now ? ` · ${formatDuration(resetsAt - now, m)}` : "";
-  // # DPALUCH - changes END [session-cost-cache]
   return (
     <UsageRow
       label={window.label}
       fill={left}
       tone={left <= 10 ? "error" : left <= 20 ? "warning" : null}
       tick={timeLeft}
-      // # DPALUCH - changes BEGIN [session-cost-cache]: Show session cost, prompt cache and reset times in the thread details card.
-      // value={`${left}%`}
-      value={`${left}%${resetsIn}`}
-      // # DPALUCH - changes END [session-cost-cache]
+      // # DPALUCH - changes BEGIN [nightly-20261120]: Use upstream's time marker without a second reset countdown.
+      // value={`${left}%${resetsIn}`}
+      value={`${left}%`}
+      // # DPALUCH - changes END [nightly-20261120]
       ariaValue={gt("{left}% left", { left })}
       opensUsage
       tooltip={

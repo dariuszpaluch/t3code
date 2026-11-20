@@ -17,7 +17,7 @@ Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstr
 - **Area:** nightly integration and desktop build.
 - **Change:** merge upstream `v0.1.11-nightly.20261120.4979` (`59651c1761`) into `dpaluch-nightly`.
 - **Why:** update the app while retaining the fork's Obsidian links, machine filtering, session costs and account usage.
-- **Conflict:** retain upstream's `tick={timeLeft}` alongside the fork's visible reset countdown. The existing `session-cost-cache` markers still identify the custom value.
+- **Conflict:** use upstream's `tick={timeLeft}` and percentage label. Remove the fork's duplicate reset countdown at the owner's request. Session cost and cache details remain.
 - **Files:** `apps/web/src/components/chat/ThreadDetailsUsage.tsx`. Other merged changes come from upstream.
 - **Validation:** pending focused tests, changed-file checks and desktop packaging.
 
