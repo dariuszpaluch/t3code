@@ -8,6 +8,21 @@ Record new fork-specific changes here. Use a stable change ID shared with the so
 
 Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstream pull request code that this branch merges is not marked, except the copied `server.priceUsage` code.
 
+<!-- # DPALUCH - changes BEGIN [nightly-20261121]: Keep fork features compatible with current upstream main. -->
+
+## 2026-11-21
+
+### nightly-20261121
+
+- **Area:** upstream integration and desktop build.
+- **Change:** merge upstream main at `d57b83d85e` into `dpaluch-nightly`.
+- **Why:** update the app while retaining the fork customizations.
+- **Conflicts:** retain Obsidian URL validation with upstream's optional URL target, the Jira branch link with upstream's repository controls, and both sidebar test imports.
+- **Files:** `apps/mobile/src/lib/openExternalUrl.ts`, `apps/web/src/components/BranchToolbar.tsx`, `apps/web/src/components/Sidebar.logic.test.ts`. Other merged changes come from upstream.
+- **Validation:** pending dependency installation, changed-file checks and macOS arm64 packaging.
+
+<!-- # DPALUCH - changes END [nightly-20261121] -->
+
 <!-- # DPALUCH - changes BEGIN [nightly-20261120]: Keep fork features on the latest upstream nightly. -->
 
 ## 2026-11-20
