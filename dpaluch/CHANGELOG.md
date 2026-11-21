@@ -19,7 +19,7 @@ Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstr
 - **Why:** update the app while retaining the fork customizations.
 - **Conflicts:** retain Obsidian URL validation with upstream's optional URL target, the Jira branch link with upstream's repository controls, and both sidebar test imports.
 - **Files:** `apps/mobile/src/lib/openExternalUrl.ts`, `apps/web/src/components/BranchToolbar.tsx`, `apps/web/src/components/Sidebar.logic.test.ts`. Other merged changes come from upstream.
-- **Validation:** pending dependency installation, changed-file checks and macOS arm64 packaging.
+- **Validation:** dependency installation, format, lint, knip, unused-patch validation, GraphQL generation, typechecks in 43 packages and React Compiler checks pass. Tests pass 696 of 699 cases. The same three keyboard and panel-shortcut browser cases recorded on November 20 still fail. macOS arm64 packaging, payload validation and signature verification pass. The build is staged for the existing installer, which waits for the running app to close.
 
 <!-- # DPALUCH - changes END [nightly-20261121] -->
 
