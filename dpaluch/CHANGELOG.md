@@ -8,6 +8,22 @@ Record new fork-specific changes here. Use a stable change ID shared with the so
 
 Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstream pull request code that this branch merges is not marked, except the copied `server.priceUsage` code.
 
+<!-- # DPALUCH - changes BEGIN [nightly-20261124]: Retain fork customizations on current upstream main. -->
+
+## 2026-11-24
+
+### nightly-20261124
+
+- **Area:** upstream integration and desktop build.
+- **Change:** merge upstream main at `4cff209428` into `dpaluch-nightly`.
+- **Why:** update the app while keeping the fork customizations.
+- **Conflicts:** retain machine filters beside upstream project creation and preferred-machine selection. Keep the persisted machine filter and Jira build settings. Move the Obsidian scheme to upstream's extracted Markdown sanitizer.
+- **Files:** `apps/web/src/components/Sidebar.tsx`, `Sidebar.logic.ts`, `apps/web/src/uiStateStore.ts`, `apps/web/src/vite-env.d.ts`, `packages/shared/src/markdownPipeline.ts`, `packages/shared/src/markdownHast.ts` and web translation catalogs. Other merged changes come from upstream.
+- **JSON record:** regenerate web translation catalogs from merged source, preserving upstream translations and fork labels. JSON does not permit inline markers.
+- **Validation:** pending dependency checks and desktop packaging.
+
+<!-- # DPALUCH - changes END [nightly-20261124] -->
+
 <!-- # DPALUCH - changes BEGIN [nightly-20261121]: Keep fork features compatible with current upstream main. -->
 
 ## 2026-11-21
