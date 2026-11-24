@@ -20,7 +20,7 @@ Changes before 2026-11-17 were marked later, in the `fork-backfill` entry. Upstr
 - **Conflicts:** retain machine filters beside upstream project creation and preferred-machine selection. Keep the persisted machine filter and Jira build settings. Move the Obsidian scheme to upstream's extracted Markdown sanitizer.
 - **Files:** `apps/web/src/components/Sidebar.tsx`, `Sidebar.logic.ts`, `apps/web/src/uiStateStore.ts`, `apps/web/src/vite-env.d.ts`, `packages/shared/src/markdownPipeline.ts`, `packages/shared/src/markdownHast.ts` and web translation catalogs. Other merged changes come from upstream.
 - **JSON record:** regenerate web translation catalogs from merged source, preserving upstream translations and fork labels. JSON does not permit inline markers.
-- **Validation:** pending dependency checks and desktop packaging.
+- **Validation:** dependency installation, format, lint, knip, unused-patch validation, GraphQL generation, typechecks in 43 packages and React Compiler checks pass. Tests pass 701 of 702 cases. The right-panel keyboard shortcut case recorded in earlier nightly updates still fails. macOS arm64 packaging, payload validation and signature verification pass. The signed app is staged with the existing installer, which waits for the running app to close. Fork-only whitespace checks pass; upstream patch files retain their original whitespace.
 
 <!-- # DPALUCH - changes END [nightly-20261124] -->
 
